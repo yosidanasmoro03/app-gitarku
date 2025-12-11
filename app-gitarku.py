@@ -7,7 +7,7 @@ import numpy as np
 import time
 import base64
 from huggingface_hub import hf_hub_download
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoTransformerBase
 import av
 
 #=================================
@@ -47,33 +47,45 @@ def loadModel():
 
 model = loadModel()
 
-# untuk menyimpan chord yang terdeteksi secara real-time
-if "last_detected_chord" not in st.session_state:
-    st.session_state.last_detected_chord = None
+# ===============================
+# QUIZ DETECTOR (khusus halaman kuis)
+# ===============================
+class QuizDetector(VideoTransformerBase):
+    def __init__(self):
+        self.model = model
 
-class quizDetector(VideoTransformerBase):
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
 
-        result = model.predict(img, verbose=False)
+        # YOLO prediction
+        result = self.model.predict(img, verbose=False)
         annotated = result[0].plot()
 
-        # menyimpan hasil deteksi ke session state
-        if len(result[0].boxes.cls) > 0:
-            detected = result[0].names[int(result[0].boxes.cls[0])]
-            st.session_state.last_detected_chord = detected
-        else:
-            st.session_state.last_detected_chord = None
-    
+        detected = None
+        labels = result[0].boxes.cls.cpu().numpy()
+        if len(labels) > 0:
+            detected = result[0].names[int(labels[0])]
+
+        # simpan ke session_state
+        st.session_state.last_detected_chord = detected
+
         return annotated
 
-class realTimeDetector(VideoTransformerBase):
+
+# ===============================
+# REALTIME DETECTOR (untuk menu deteksi real-time)
+# ===============================
+class RealtimeDetector(VideoTransformerBase):
+    def __init__(self):
+        self.model = model
+
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        result = model.predict(img, verbose=False)
-        annotated = result[0].plot()
-        return annotated
 
+        result = self.model.predict(img, verbose=False)
+        annotated = result[0].plot()
+
+        return annotated
 
 #=======================================
 # fungsi untuk menampilkan gambar chord di mode kuis
@@ -189,6 +201,8 @@ elif menu == "🎸 Kuis Deteksi Chord":
         st.session_state.currentQuestion = ""
     if "expectedChord" not in st.session_state:
         st.session_state.expectedChord = ""
+    if "last_detected_chord" not in st.session_state:
+        st.session_state.last_detected_chord = None
 
     col1, col2 = st.columns(2)
     if col1.button("MULAI KUIS"):
@@ -208,18 +222,19 @@ elif menu == "🎸 Kuis Deteksi Chord":
 
         colCam, colDiag = st.columns([3,1])
 
+        # diagram chord
         with colDiag:
             st.subheader("Bentuk Chord yang diminta:")
             st.image(loadChordDiagram(st.session_state.expectedChord), use_column_width=True)
 
-        # Start WebRTC streaming for quiz
+        # Start WebRTC streaming (quiz detector)
         webrtc_streamer(
             key="quiz_detector",
+            mode=WebRtcMode.SENDRECV,
             video_transformer_factory=QuizDetector,
             media_stream_constraints={"video": True, "audio": False},
         )
 
-        # cek apakah chord terdeteksi
         detected = st.session_state.last_detected_chord
 
         if detected is not None:
@@ -234,14 +249,12 @@ elif menu == "🎸 Kuis Deteksi Chord":
                 st.session_state.expectedChord = c
                 st.session_state.last_detected_chord = None
                 st.rerun()
+
             else:
                 st.warning(f"Terdeteksi: {detected}. Coba lagi!")
+
         else:
             st.info("Menunggu deteksi...")
-
-            time.sleep(0.1)
-            
-        camera.release()
 
 #==========================================
 # DETEKSI REAL-TIME
@@ -267,10 +280,10 @@ elif menu == "🎥 Deteksi Real-time":
         st.session_state.realtime_active = False
         st.experimental_rerun()
 
-    # jika aktif, tampilkan WebRTC
     if st.session_state.realtime_active:
         webrtc_streamer(
             key="realtime_detector",
+            mode=WebRtcMode.SENDRECV,
             video_transformer_factory=RealtimeDetector,
             media_stream_constraints={"video": True, "audio": False},
         )
@@ -299,6 +312,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
