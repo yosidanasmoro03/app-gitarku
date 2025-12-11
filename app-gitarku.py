@@ -44,7 +44,7 @@ def loadModel(url, outPath = "models/best.pt"):
             f.write(r.content)
     return YOLO(outPath)
 
-model = loadModel("https://huggingface.co/yosidanasmoro03/bestModels/blob/main/models/best.pt")
+model = loadModel("https://huggingface.co/yosidanasmoro03/bestModels/resolve/main/models/best.pt")
 
 #=======================================
 # fungsi untuk menampilkan gambar chord di mode kuis
@@ -287,6 +287,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
