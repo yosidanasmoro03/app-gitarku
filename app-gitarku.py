@@ -101,7 +101,7 @@ if menu == "🏠 Home":
 
     with col1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.image("kuis.png", use_container_width=True)
+        st.image("kuis.png", use_column_width=True)
         st.markdown('<div class="card-title">Kuis Deteksi Chord</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-desc">Siapkan gitar dan jawab pertanyaan dengan menunjukkan chord yang diminta di depan kamera.</div>', unsafe_allow_html=True)
 
@@ -112,7 +112,7 @@ if menu == "🏠 Home":
     
     with col2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.image("realtime.png", use_container_width=True)
+        st.image("realtime.png", use_column_width=True)
         st.markdown('<div class="card-title">Deteksi Real-time</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-desc">Gunakan kamera untuk mendeteksi chord secara langsung.</div>', unsafe_allow_html=True)
 
@@ -123,7 +123,7 @@ if menu == "🏠 Home":
 
     with col3:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.image("upload.png", use_container_width=True)
+        st.image("upload.png", use_column_width=True)
         st.markdown('<div class="card-title">Upload Gambar</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-desc">Upload gambar gitar untuk mendeteksi chord yang dimainkan.</div>', unsafe_allow_html=True)
 
@@ -187,7 +187,7 @@ elif menu == "🎸 Kuis Deteksi Chord":
 
         with colDiag:
             st.subheader("Bentuk Chord:")
-            st.image(diagramPath, use_container_width=True)
+            st.image(diagramPath, use_column_width=True)
         
         while st.session_state.isActive and camera.isOpened():
             ret, frame = camera.read()
@@ -200,7 +200,7 @@ elif menu == "🎸 Kuis Deteksi Chord":
             annotatedFrame = cv2.cvtColor(result[0].plot(), cv2.COLOR_BGR2RGB)
 
             #tampilkan video
-            frameContainer.image(annotatedFrame, channels="RGB", use_container_width=True)
+            frameContainer.image(annotatedFrame, channels="RGB", use_column_width=True)
 
             if len(label) > 0:
                 detectedChord = result[0].names[int(label[0])]
@@ -256,7 +256,7 @@ elif menu == "🎥 Deteksi Real-time":
             result = model.predict(frame, verbose=False)
             annotatedFrame = result[0].plot()
             annotatedFrame = cv2.cvtColor(annotatedFrame, cv2.COLOR_BGR2RGB)
-            framePlaceholder.image(annotatedFrame, channels="RGB", use_container_width=True)
+            framePlaceholder.image(annotatedFrame, channels="RGB", use_column_width=True)
             time.sleep(0.1)
             if not st.session_state.cameraActive:
                 break
@@ -279,7 +279,7 @@ elif menu == "📷 Upload Gambar":
         result = model.predict(image, verbose=False)
         annotatedFrame = result[0].plot()
         annotatedFrame = cv2.cvtColor(annotatedFrame, cv2.COLOR_BGR2RGB)
-        st.image(annotatedFrame, channels="RGB", use_container_width=True)
+        st.image(annotatedFrame, channels="RGB", use_column_width=True)
 
         if len(result[0].boxes.cls) > 0:
             detected = [result[0].names[int(c)] for c in result[0].boxes.cls]
