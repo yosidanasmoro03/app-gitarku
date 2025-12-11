@@ -6,8 +6,7 @@ import random
 import numpy as np
 import time
 import base64
-import torch
-import requests
+from huggingface_hub import hf_hub_download
 
 #=================================
 # Fungsi untuk load CSS eksternal
@@ -37,14 +36,14 @@ def setBackground(imagePath):
 # Load model YOLO
 
 @st.cache_resource
-def loadModel(url, outPath = "models/best.pt"):
-    if not os.path.exists(outPath):
-        r = requests.get(url)
-        with open (outPath, "wb") as f:
-            f.write(r.content)
-    return YOLO(outPath)
+def loadModel():
+    modelPath = hf_hub_download(
+        repoId="yosidanasmoro03/bestModels",
+        fileName="models/best.pt"
+    )
+    return YOLO(modelPath)
 
-model = loadModel("https://huggingface.co/yosidanasmoro03/bestModels/resolve/main/models/best.pt")
+model = loadModel()
 
 #=======================================
 # fungsi untuk menampilkan gambar chord di mode kuis
@@ -287,6 +286,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
