@@ -51,17 +51,17 @@ class quizDetector(VideoTransformerBase):
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
 
-    result = model.predict(img, verbose=False)
-    annotated = result[0].plot()
+        result = model.predict(img, verbose=False)
+        annotated = result[0].plot()
 
-    # menyimpan hasil deteksi ke session state
-    if len(result[0].boxes.cls) > 0:
-        detected = result[0].names[int(result[0].boxes.cls[0])]
-        st.session_state.last_detected_chord = detected
-    else:
-        st.session_state.last_detected_chord = None
+        # menyimpan hasil deteksi ke session state
+        if len(result[0].boxes.cls) > 0:
+            detected = result[0].names[int(result[0].boxes.cls[0])]
+            st.session_state.last_detected_chord = detected
+        else:
+            st.session_state.last_detected_chord = None
     
-    return annotated
+        return annotated
 
 class realTimeDetector(VideoTransformerBase):
     def transform(self, frame):
@@ -295,6 +295,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
