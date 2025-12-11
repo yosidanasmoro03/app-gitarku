@@ -7,6 +7,8 @@ import numpy as np
 import time
 import base64
 from huggingface_hub import hf_hub_download
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import av
 
 #=================================
 # Fungsi untuk load CSS eksternal
@@ -44,6 +46,30 @@ def loadModel():
     return YOLO(modelPath)
 
 model = loadModel()
+
+class quizDetector(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+
+    result = model.predict(img, verbose=False)
+    annotated = result[0].plot()
+
+    # menyimpan hasil deteksi ke session state
+    if len(result[0].boxes.cls) > 0:
+        detected = result[0].names[int(result[0].boxes.cls[0])]
+        st.session_state.last_detected_chord = detected
+    else:
+        st.session_state.last_detected_chord = None
+    
+    return annotated
+
+class realTimeDetector(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+        result = model.predict(img, verbose=False)
+        annotated = result[0].plot()
+        return annotated
+
 
 #=======================================
 # fungsi untuk menampilkan gambar chord di mode kuis
@@ -152,77 +178,62 @@ elif menu == "🎸 Kuis Deteksi Chord":
         "Cobalah bentuk chord Em": "Em-Chord" 
     }
 
-    # Membuat session state
-    for key in ["isActive", "currentQuestion", "expectedChord"]:
-        if key not in st.session_state:
-            st.session_state[key] = "" if key != "isActive" else False
-    
-    #tombol kontrol kuis
+    # initial state
+    if "isActive" not in st.session_state:
+        st.session_state.isActive = False
+    if "currentQuestion" not in st.session_state:
+        st.session_state.currentQuestion = ""
+    if "expectedChord" not in st.session_state:
+        st.session_state.expectedChord = ""
+
     col1, col2 = st.columns(2)
-    if col1.button("MULAI KUIS", key="startQuiz"):
+    if col1.button("MULAI KUIS"):
         st.session_state.isActive = True
-        question, chord = random.choice(list(questionList.items()))
-        st.session_state.currentQuestion = question
-        st.session_state.expectedChord = chord
-    
-    if col2.button("❌ STOP KUIS", key="stopQuiz"):
+        q, c = random.choice(list(questionList.items()))
+        st.session_state.currentQuestion = q
+        st.session_state.expectedChord = c
+        st.session_state.last_detected_chord = None
+
+    if col2.button("❌ STOP KUIS"):
         st.session_state.isActive = False
         st.success("Kuis dihentikan")
-        st.stop()
-    
-    #jalankan kuis
+
     if st.session_state.isActive:
         st.subheader("Pertanyaan:")
         st.markdown(f"**{st.session_state.currentQuestion}**")
 
-        camera = cv2.VideoCapture(0)
-        # layout 2 kolom: kiri kamera, kanan diagram chord
         colCam, colDiag = st.columns([3,1])
 
-        frameContainer = colCam.empty()
-        messageContainer = colCam.empty()
-
-        #menampilkan diagram chord sesuai soal
-        diagramPath = loadChordDiagram(st.session_state.expectedChord)
-
         with colDiag:
-            st.subheader("Bentuk Chord:")
-            st.image(diagramPath, use_column_width=True)
-        
-        while st.session_state.isActive and camera.isOpened():
-            ret, frame = camera.read()
-            if not ret:
-                st.error("Tidak dapat mengakses kamera")
-                break
-            
-            result = model.predict(frame, verbose=False)
-            label = result[0].boxes.cls.cpu().numpy()
-            annotatedFrame = cv2.cvtColor(result[0].plot(), cv2.COLOR_BGR2RGB)
+            st.subheader("Bentuk Chord yang diminta:")
+            st.image(loadChordDiagram(st.session_state.expectedChord), use_column_width=True)
 
-            #tampilkan video
-            frameContainer.image(annotatedFrame, channels="RGB", use_column_width=True)
+        # Start WebRTC streaming for quiz
+        webrtc_streamer(
+            key="quiz_detector",
+            video_transformer_factory=QuizDetector,
+            media_stream_constraints={"video": True, "audio": False},
+        )
 
-            if len(label) > 0:
-                detectedChord = result[0].names[int(label[0])]
-                expectedChord = st.session_state.expectedChord
+        # cek apakah chord terdeteksi
+        detected = st.session_state.last_detected_chord
 
-                if detectedChord == expectedChord:
-                    messageContainer.success(f"✅ Benar! Chord {detectedChord} terdeteksi")
-                    time.sleep(2)
+        if detected is not None:
+            if detected == st.session_state.expectedChord:
+                st.success(f"✅ Benar! Chord {detected} terdeteksi")
 
-                    #update soal & chord berikutnya
-                    question, chord = random.choice(list(questionList.items()))
-                    st.session_state.currentQuestion = question
-                    st.session_state.expectedChord = chord
+                time.sleep(1)
 
-                    st.rerun()
-                
-                else:
-                    if detectedChord != expectedChord:
-                        messageContainer.warning(f"Terdeteksi: {detectedChord}. Coba lagi!")
-                
+                # next question
+                q, c = random.choice(list(questionList.items()))
+                st.session_state.currentQuestion = q
+                st.session_state.expectedChord = c
+                st.session_state.last_detected_chord = None
+                st.rerun()
             else:
-                messageContainer.info("Menunggu deteksi...")
+                st.warning(f"Terdeteksi: {detected}. Coba lagi!")
+        else:
+            st.info("Menunggu deteksi...")
 
             time.sleep(0.1)
             
@@ -235,34 +246,32 @@ elif menu == "🎥 Deteksi Real-time":
     setBackground(r"backgrounds/leandro-unsplash.jpg")
     st.markdown("<h1 style='text-align: center;'>🎥 Deteksi Chord Gitar Real-time</h1>", unsafe_allow_html=True)
 
-    if "cameraActive" not in st.session_state:
-        st.session_state.cameraActive = False
-    
+    st.markdown(
+        "<p style='text-align:center;'>Streaming kamera browser, YOLO berjalan secara real-time.</p>",
+        unsafe_allow_html=True
+    )
+
+    # STATE untuk start/stop kamera
+    if "realtime_active" not in st.session_state:
+        st.session_state.realtime_active = False
+
     col1, col2 = st.columns(2)
-    if col1.button("MULAI DETEKSI", key="startRealtime"):
-        st.session_state.cameraActive = True
-    if col2.button("❌ MATIKAN KAMERA", key="stopRealtime"):
-        st.session_state.cameraActive = False
-    
-    framePlaceholder = st.empty()
+    if col1.button("MULAI DETEKSI"):
+        st.session_state.realtime_active = True
 
-    if st.session_state.cameraActive:
-        camera = cv2.VideoCapture(0)
-        while st.session_state.cameraActive:
-            ret, frame = camera.read()
-            if not ret:
-                st.error("Kamera tidak dapat diakses.")
-                break
-            result = model.predict(frame, verbose=False)
-            annotatedFrame = result[0].plot()
-            annotatedFrame = cv2.cvtColor(annotatedFrame, cv2.COLOR_BGR2RGB)
-            framePlaceholder.image(annotatedFrame, channels="RGB", use_column_width=True)
-            time.sleep(0.1)
-            if not st.session_state.cameraActive:
-                break
+    if col2.button("❌ MATIKAN KAMERA"):
+        st.session_state.realtime_active = False
+        st.experimental_rerun()
 
-        camera.release()
-    st.success("Kamera dimatikan.")
+    # jika aktif, tampilkan WebRTC
+    if st.session_state.realtime_active:
+        webrtc_streamer(
+            key="realtime_detector",
+            video_transformer_factory=RealtimeDetector,
+            media_stream_constraints={"video": True, "audio": False},
+        )
+    else:
+        st.info("Kamera tidak aktif.")
 
 #=========================================
 # DETEKSI GAMBAR UPLOAD
@@ -286,6 +295,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
