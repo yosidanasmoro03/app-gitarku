@@ -38,8 +38,8 @@ def setBackground(imagePath):
 @st.cache_resource
 def loadModel():
     modelPath = hf_hub_download(
-        repoId="yosidanasmoro03/bestModels",
-        fileName="models/best.pt"
+        repo_id="yosidanasmoro03/bestModels",
+        filename="models/best.pt"
     )
     return YOLO(modelPath)
 
@@ -286,6 +286,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
