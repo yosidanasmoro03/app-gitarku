@@ -47,6 +47,10 @@ def loadModel():
 
 model = loadModel()
 
+# untuk menyimpan chord yang terdeteksi secara real-time
+if "last_detected_chord" not in st.session_state:
+    st.session_state.last_detected_chord = None
+
 class quizDetector(VideoTransformerBase):
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -295,6 +299,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
