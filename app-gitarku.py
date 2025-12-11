@@ -36,7 +36,7 @@ def setBackground(imagePath):
 
 @st.cache_resource
 def loadModel():
-    return YOLO(r"C:\Users\HP\OneDrive\Documents\yolo\my guitar model\trainingGuitar_yolov8m_32_0.001_Adam\weights\best.pt")
+    return YOLO("models/best.pt")
 
 model = loadModel()
 
@@ -281,5 +281,6 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
