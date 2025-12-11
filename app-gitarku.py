@@ -6,6 +6,8 @@ import random
 import numpy as np
 import time
 import base64
+import torch
+import requests
 
 #=================================
 # Fungsi untuk load CSS eksternal
@@ -35,10 +37,14 @@ def setBackground(imagePath):
 # Load model YOLO
 
 @st.cache_resource
-def loadModel():
-    return YOLO("models/best.pt")
+def loadModel(url, outPath = "models/best.pt"):
+    if not os.path.exists(outPath):
+        r = requests.get(url)
+        with open (outPath, "wb") as f:
+            f.write(r.content)
+    return YOLO(outPath)
 
-model = loadModel()
+model = loadModel("https://huggingface.co/yosidanasmoro03/bestModels/tree/main/models/best.pt")
 
 #=======================================
 # fungsi untuk menampilkan gambar chord di mode kuis
@@ -281,6 +287,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
