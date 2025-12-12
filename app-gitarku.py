@@ -229,7 +229,10 @@ elif menu == "🎸 Kuis Deteksi Chord":
     with c2:
         # Tampilkan Diagram
         diagram_path = loadChordDiagram(st.session_state.quiz_target)
-        st.image(diagram_path, caption=f"Diagram {st.session_state.quiz_target}")
+        if diagram_path:
+            st.image(diagram_path, caption=f"Diagram {st.session_state.quiz_target}")
+        else:
+            st.warning(f"Gambar diagram tidak ditemukan untuk {st.session_state.quiz_target}")
 
     st.write("---")
     
@@ -301,4 +304,5 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
