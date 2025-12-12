@@ -123,7 +123,7 @@ class RealtimeProcessor(VideoProcessorBase):
 def loadChordDiagram(namaChord):
     for ext in (".png", ".jpg", ".jpeg"):
         path = f"chord_diagrams/{namaChord}{ext}"
-        if os.path.isfile(path):
+        if os.path.exists(path):
             return path
     return None
 
@@ -216,7 +216,7 @@ elif menu == "🎸 Kuis Deteksi Chord":
     if "quiz_target" not in st.session_state:
         # Pilih random pertama kali
         key, val = random.choice(list(questionList.items()))
-        st.session_state.quiz_target = key # Key dict (Misal "C") adalah label class YOLO
+        st.session_state.quiz_target = key 
         st.session_state.quiz_text = val
 
     # Layout Pertanyaan
@@ -301,3 +301,4 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
