@@ -6,8 +6,14 @@ import random
 import numpy as np
 import time
 import base64
+import av
+import threading
 from huggingface_hub import hf_hub_download
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoTransformerBase
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase, RTCConfiguration
+
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
 
 #=================================
 # Fungsi untuk load CSS eksternal
@@ -47,44 +53,69 @@ def loadModel():
 model = loadModel()
 
 # ===============================
-# QUIZ DETECTOR (khusus halaman kuis)
+# KELAS PEMROSES VIDEO
 # ===============================
-class QuizDetector(VideoTransformerBase):
+
+# Kelas untuk Kuis
+class QuizProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.model = model
+        self.target_chord = None
+        self.lock = threading.Lock()
+        self.detected_chord = None
+        self.is_correct = False
+
+    def update_target(self, target):
+        with self.lock:
+            self.target_chord = target
+            self.is_correct = False
+
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
+        
+        # Prediksi YOLO
+        results = self.model(img, verbose=False, conf=0.5)
+        annotated_frame = results[0].plot()
+
+        # Logika Pengecekan Kuis
+        current_target = None
+        with self.lock:
+            current_target = self.target_chord
+
+        if len(results[0].boxes.cls) > 0:
+            # Ambil nama chord yang terdeteksi pertama
+            detected_idx = int(results[0].boxes.cls[0])
+            detected_name = results[0].names[detected_idx]
+            
+            # Simpan state (opsional)
+            with self.lock:
+                self.detected_chord = detected_name
+
+            # Validasi Jawaban Visual di Layar
+            if current_target and detected_name == current_target:
+                # Jika Benar: Gambar kotak HIJAU dan teks BENAR
+                cv2.rectangle(annotated_frame, (50, 50), (300, 150), (0, 255, 0), -1)
+                cv2.putText(annotated_frame, f"BENAR: {detected_name}!", (60, 110), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
+                with self.lock:
+                    self.is_correct = True
+            else:
+                # Jika Salah: Tampilkan apa yang terdeteksi
+                cv2.putText(annotated_frame, f"Deteksi: {detected_name}", (50, 50), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        
+        return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
+
+# Kleas untuk realtime 
+class RealtimeProcessor(VideoProcessorBase):
     def __init__(self):
         self.model = model
 
-    def transform(self, frame):
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
-
-        # YOLO prediction
-        result = self.model.predict(img, verbose=False)
-        annotated = result[0].plot()
-
-        detected = None
-        labels = result[0].boxes.cls.cpu().numpy()
-        if len(labels) > 0:
-            detected = result[0].names[int(labels[0])]
-
-        # simpan ke session_state
-        st.session_state.last_detected_chord = detected
-
-        return annotated
-
-
-# ===============================
-# REALTIME DETECTOR (untuk menu deteksi real-time)
-# ===============================
-class RealtimeDetector(VideoTransformerBase):
-    def __init__(self):
-        self.model = model
-
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-
-        result = self.model.predict(img, verbose=False)
-        annotated = result[0].plot()
-
-        return annotated
+        results = self.model(img, verbose=False, conf=0.5)
+        annotated_frame = results[0].plot()
+        return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
 #=======================================
 # fungsi untuk menampilkan gambar chord di mode kuis
@@ -141,37 +172,25 @@ if menu == "🏠 Home":
     col1, col2, col3 = st.columns(3, gap="large")
 
     with col1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.image("kuis.png", use_column_width=True)
-        st.markdown('<div class="card-title">Kuis Deteksi Chord</div>', unsafe_allow_html=True)
-        st.markdown('<div class="card-desc">Siapkan gitar dan jawab pertanyaan dengan menunjukkan chord yang diminta di depan kamera.</div>', unsafe_allow_html=True)
-
-        if st.button("MULAI KUIS", key="quiz"):
+        st.info("🎸 **Kuis Deteksi**")
+        st.write("Siapkan gitar dan jawab pertanyaan dengan menunjukkan chord yang diminta di depan kamera.")
+        if st.button("MULAI KUIS", key="quiz_home"):
             st.session_state.menu = "🎸 Kuis Deteksi Chord"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.image("realtime.png", use_column_width=True)
-        st.markdown('<div class="card-title">Deteksi Real-time</div>', unsafe_allow_html=True)
-        st.markdown('<div class="card-desc">Gunakan kamera untuk mendeteksi chord secara langsung.</div>', unsafe_allow_html=True)
-
-        if st.button("BUKA KAMERA", key="realtime"):
+        st.warning("🎥 **Real-time**")
+        st.write("Gunakan kamera untuk mendeteksi chord secara langsung.")
+        if st.button("BUKA KAMERA", key="realtime_home"):
             st.session_state.menu = "🎥 Deteksi Real-time"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col3:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.image("upload.png", use_column_width=True)
-        st.markdown('<div class="card-title">Upload Gambar</div>', unsafe_allow_html=True)
-        st.markdown('<div class="card-desc">Upload gambar gitar untuk mendeteksi chord yang dimainkan.</div>', unsafe_allow_html=True)
-
-        if st.button("UPLOAD GAMBAR", key="upload"):
+        st.success("📷 **Upload**")
+        st.write("Upload gambar untuk mendeteksi chord yang dimainkan.")
+        if st.button("UPLOAD GAMBAR", key="upload_home"):
             st.session_state.menu = "📷 Upload Gambar"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 #======================================
 # HALAMAN KUIS DETEKSI CHORD
@@ -193,67 +212,49 @@ elif menu == "🎸 Kuis Deteksi Chord":
         "Cobalah bentuk chord Em": "Em-Chord" 
     }
 
-    # initial state
-    if "isActive" not in st.session_state:
-        st.session_state.isActive = False
-    if "currentQuestion" not in st.session_state:
-        st.session_state.currentQuestion = ""
-    if "expectedChord" not in st.session_state:
-        st.session_state.expectedChord = ""
-    if "last_detected_chord" not in st.session_state:
-        st.session_state.last_detected_chord = None
+    # Inisialisasi State Pertanyaan
+    if "quiz_target" not in st.session_state:
+        # Pilih random pertama kali
+        key, val = random.choice(list(questionList.items()))
+        st.session_state.quiz_target = key # Key dict (Misal "C") adalah label class YOLO
+        st.session_state.quiz_text = val
 
-    col1, col2 = st.columns(2)
-    if col1.button("MULAI KUIS"):
-        st.session_state.isActive = True
-        q, c = random.choice(list(questionList.items()))
-        st.session_state.currentQuestion = q
-        st.session_state.expectedChord = c
-        st.session_state.last_detected_chord = None
+    # Layout Pertanyaan
+    c1, c2 = st.columns([2, 1])
+    
+    with c1:
+        st.markdown(f"### Pertanyaan: \n## **{st.session_state.quiz_text}**")
+        st.info(f"Target Chord: **{st.session_state.quiz_target}**")
+    
+    with c2:
+        # Tampilkan Diagram
+        diagram_path = loadChordDiagram(st.session_state.quiz_target)
+        st.image(diagram_path, caption=f"Diagram {st.session_state.quiz_target}")
 
-    if col2.button("❌ STOP KUIS"):
-        st.session_state.isActive = False
-        st.success("Kuis dihentikan")
+    st.write("---")
+    
+    # WEBRTC STREAMER
+    # Kita menggunakan `ctx` untuk mengakses processor
+    ctx = webrtc_streamer(
+        key="quiz_detector",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_processor_factory=QuizProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
 
-    if st.session_state.isActive:
-        st.subheader("Pertanyaan:")
-        st.markdown(f"**{st.session_state.currentQuestion}**")
+    # Kirim Target Chord ke Processor agar bisa dicek real-time
+    if ctx.video_processor:
+        ctx.video_processor.update_target(st.session_state.quiz_target)
 
-        colCam, colDiag = st.columns([3,1])
-
-        # diagram chord
-        with colDiag:
-            st.subheader("Bentuk Chord yang diminta:")
-            st.image(loadChordDiagram(st.session_state.expectedChord), use_column_width=True)
-
-        # Start WebRTC streaming (quiz detector)
-        webrtc_streamer(
-            key="quiz_detector",
-            mode=WebRtcMode.SENDRECV,
-            video_transformer_factory=QuizDetector,
-            media_stream_constraints={"video": True, "audio": False},
-        )
-
-        detected = st.session_state.last_detected_chord
-
-        if detected is not None:
-            if detected == st.session_state.expectedChord:
-                st.success(f"✅ Benar! Chord {detected} terdeteksi")
-
-                time.sleep(1)
-
-                # next question
-                q, c = random.choice(list(questionList.items()))
-                st.session_state.currentQuestion = q
-                st.session_state.expectedChord = c
-                st.session_state.last_detected_chord = None
-                st.rerun()
-
-            else:
-                st.warning(f"Terdeteksi: {detected}. Coba lagi!")
-
-        else:
-            st.info("Menunggu deteksi...")
+    # Tombol Ganti Soal
+    st.write("")
+    if st.button("➡ Soal Selanjutnya (Acak)", type="primary"):
+        key, val = random.choice(list(questionList.items()))
+        st.session_state.quiz_target = key
+        st.session_state.quiz_text = val
+        st.rerun()
 
 #==========================================
 # DETEKSI REAL-TIME
@@ -267,27 +268,16 @@ elif menu == "🎥 Deteksi Real-time":
         unsafe_allow_html=True
     )
 
-    # STATE untuk start/stop kamera
-    if "realtime_active" not in st.session_state:
-        st.session_state.realtime_active = False
+    st.write("Pastikan memberikan izin akses kamera pada browser.")
 
-    col1, col2 = st.columns(2)
-    if col1.button("MULAI DETEKSI"):
-        st.session_state.realtime_active = True
-
-    if col2.button("❌ MATIKAN KAMERA"):
-        st.session_state.realtime_active = False
-        st.experimental_rerun()
-
-    if st.session_state.realtime_active:
-        webrtc_streamer(
-            key="realtime_detector",
-            mode=WebRtcMode.SENDRECV,
-            video_transformer_factory=RealtimeDetector,
-            media_stream_constraints={"video": True, "audio": False},
-        )
-    else:
-        st.info("Kamera tidak aktif.")
+    webrtc_streamer(
+        key="realtime_detector",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_processor_factory=RealtimeProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
 
 #=========================================
 # DETEKSI GAMBAR UPLOAD
@@ -311,18 +301,3 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
