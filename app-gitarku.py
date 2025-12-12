@@ -8,7 +8,6 @@ import time
 import base64
 from huggingface_hub import hf_hub_download
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoTransformerBase
-import av
 
 #=================================
 # Fungsi untuk load CSS eksternal
@@ -312,6 +311,7 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
 
