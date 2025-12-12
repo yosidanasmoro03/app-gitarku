@@ -3,3 +3,5 @@ ultralytics
 opencv-python-headless
 streamlit-webrtc
 av
+huggingface_hub
+numpy
