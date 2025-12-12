@@ -60,15 +60,12 @@ model = loadModel()
 class QuizProcessor(VideoProcessorBase):
     def __init__(self):
         self.model = model
-        self.target_chord = None
+        self.target_chord = None # Contoh: "C-Chord"
         self.lock = threading.Lock()
-        self.detected_chord = None
-        self.is_correct = False
-
+        
     def update_target(self, target):
         with self.lock:
             self.target_chord = target
-            self.is_correct = False
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
@@ -77,32 +74,34 @@ class QuizProcessor(VideoProcessorBase):
         results = self.model(img, verbose=False, conf=0.5)
         annotated_frame = results[0].plot()
 
-        # Logika Pengecekan Kuis
+        # Ambil target saat ini dari thread-safe variable
         current_target = None
         with self.lock:
             current_target = self.target_chord
 
         if len(results[0].boxes.cls) > 0:
-            # Ambil nama chord yang terdeteksi pertama
+            # Ambil nama chord yang terdeteksi
             detected_idx = int(results[0].boxes.cls[0])
-            detected_name = results[0].names[detected_idx]
+            detected_name = results[0].names[detected_idx] # Contoh: "C-Chord"
             
-            # Simpan state (opsional)
-            with self.lock:
-                self.detected_chord = detected_name
-
-            # Validasi Jawaban Visual di Layar
+            # === LOGIKA UTAMA PERUBAHAN: KOMUNIKASI DENGAN SESSION STATE ===
             if current_target and detected_name == current_target:
-                # Jika Benar: Gambar kotak HIJAU dan teks BENAR
-                cv2.rectangle(annotated_frame, (50, 50), (300, 150), (0, 255, 0), -1)
-                cv2.putText(annotated_frame, f"BENAR: {detected_name}!", (60, 110), 
+                # Jika Benar: Set flag di session state
+                # Penting: Pastikan st.session_state diakses thread-safe
+                st.session_state["chord_detected_correctly"] = True
+                
+                # Visualisasi BENAR di video stream
+                cv2.rectangle(annotated_frame, (50, 50), (450, 150), (0, 255, 0), -1)
+                cv2.putText(annotated_frame, f"✅ BENAR: {detected_name}", (60, 110), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
-                with self.lock:
-                    self.is_correct = True
             else:
-                # Jika Salah: Tampilkan apa yang terdeteksi
+                # Visualisasi Deteksi Salah
                 cv2.putText(annotated_frame, f"Deteksi: {detected_name}", (50, 50), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        else:
+            # Jika tidak ada deteksi, reset flag (agar tidak lompat terus)
+            st.session_state["chord_detected_correctly"] = False
+            
         
         return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
@@ -126,6 +125,27 @@ def loadChordDiagram(namaChord):
         if os.path.exists(path):
             return path
     return None
+
+def next_quiz_question():
+    questionList = {
+        "Tunjukkan bentuk jari untuk chord C": "C-Chord",
+        "Tunjukkan chord G dengan tanganmu": "G-Chord",
+        "Sekarang, bentuk chord D di gitar": "D-Chord",
+        "Bentuk chord A di fretboard": "A-Chord",
+        "Coba tunjukkan chord E sekarang": "E-Chord",
+        "Tunjukkan posisi jari untuk chord Am": "Am-Chord",
+        "Tampilkan chord F dengan benar": "F-Chord",
+        "Bentuk chord Bm di gitar": "Bm-Chord",
+        "Ayo tunjukkan chord Dm dengan posisi tangan yang benar": "Dm-Chord",
+        "Cobalah bentuk chord Em": "Em-Chord"
+    }
+    # Pilih soal baru
+    q_text, q_target = random.choice(list(questionList.items()))
+    st.session_state.quiz_target = q_target
+    st.session_state.quiz_text = q_text
+    # Reset flag deteksi
+    st.session_state["chord_detected_correctly"] = False
+    st.rerun()
 
 #====================================
 # Navbar dan Menu
@@ -199,26 +219,17 @@ elif menu == "🎸 Kuis Deteksi Chord":
     setBackground(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
     st.markdown("<h1 style='text-align: center;'>🎸 Kuis Chord Gitar dengan Kamera</h1>", unsafe_allow_html=True)
 
-    questionList = {
-        "Tunjukkan bentuk jari untuk chord C": "C-Chord",
-        "Tunjukkan chord G dengan tanganmu": "G-Chord",
-        "Sekarang, bentuk chord D di gitar": "D-Chord",
-        "Bentuk chord A di fretboard": "A-Chord",
-        "Coba tunjukkan chord E sekarang": "E-Chord",
-        "Tunjukkan posisi jari untuk chord Am": "Am-Chord",
-        "Tampilkan chord F dengan benar": "F-Chord",
-        "Bentuk chord Bm di gitar": "Bm-Chord",
-        "Ayo tunjukkan chord Dm dengan posisi tangan yang benar": "Dm-Chord",
-        "Cobalah bentuk chord Em": "Em-Chord" 
-    }
-
     # Inisialisasi State Pertanyaan
     if "quiz_target" not in st.session_state:
-        # Pilih random pertama kali
-        key, val = random.choice(list(questionList.items()))
-        st.session_state.quiz_target = key 
-        st.session_state.quiz_text = val
+        next_quiz_question()
 
+    # == LOGIKA LOMPAT OTOMATIS ==
+    if st.session_state["chord_detected_correctly"]:
+        st.success(f"Chord **{st.session_state.quiz_target}** terdeteksi dengan Benar! Melanjutkan ke soal berikutnya...")
+        time.sleep(1) # Beri waktu sejenak agar user melihat pesan sukses
+        next_quiz_question()
+        st.stop() # Hentikan eksekusi di sini, Rerun sudah dipanggil
+        
     # Layout Pertanyaan
     c1, c2 = st.columns([2, 1])
     
@@ -253,11 +264,8 @@ elif menu == "🎸 Kuis Deteksi Chord":
 
     # Tombol Ganti Soal
     st.write("")
-    if st.button("➡ Soal Selanjutnya (Acak)", type="primary"):
-        key, val = random.choice(list(questionList.items()))
-        st.session_state.quiz_target = key
-        st.session_state.quiz_text = val
-        st.rerun()
+    if st.button("Lewati Soal", type="secondary"):
+        next_quiz_question()
 
 #==========================================
 # DETEKSI REAL-TIME
@@ -265,11 +273,6 @@ elif menu == "🎸 Kuis Deteksi Chord":
 elif menu == "🎥 Deteksi Real-time":
     setBackground(r"backgrounds/leandro-unsplash.jpg")
     st.markdown("<h1 style='text-align: center;'>🎥 Deteksi Chord Gitar Real-time</h1>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<p style='text-align:center;'>Streaming kamera browser, YOLO berjalan secara real-time.</p>",
-        unsafe_allow_html=True
-    )
 
     st.write("Pastikan memberikan izin akses kamera pada browser.")
 
@@ -304,5 +307,6 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi pada gambar ini.")
+
 
 
