@@ -33,18 +33,26 @@ def loadCss(filePath):
 
 loadCss("styles/styles.css") 
 
-# Set Background
+# ==========================================
+# FUNGSI BACKGROUND DENGAN OVERLAY
+# ==========================================
 def setBackground(imagePath):
     if os.path.exists(imagePath):
         with open(imagePath, "rb") as f:
             data = f.read()
         encoded = base64.b64encode(data).decode()
+        
+        # PERUBAHAN DISINI:
+        # Kita menambahkan 'linear-gradient' berwarna hitam transparan (rgba 0,0,0,0.6)
+        # di atas url gambar. Ini menciptakan efek overlay gelap.
         css = f"""
         <style>
         [data-testid="stAppViewContainer"] {{
-            background-image: url("data:image/png;base64,{encoded}");
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("data:image/png;base64,{encoded}");
             background-size: cover;
             background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }}
         </style>
         """
@@ -155,53 +163,43 @@ class RealtimeProcessor(VideoProcessorBase):
         return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
 # ==========================================
-# NAVIGATION (FIXED: Single Navbar)
+# NAVIGATION
 # ==========================================
 
 if "menu" not in st.session_state:
     st.session_state.menu = "🏠 Home"
 
-# Container khusus untuk Navbar agar bisa distyle CSS
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-
 navItems = ["🏠 Home", "🎸 Kuis", "🎥 Real-time", "📷 Upload"]
 cols = st.columns(len(navItems))
-
 for i, item in enumerate(navItems):
     with cols[i]:
-        # Jika tombol ini aktif, kita tandai (walaupun st.button agak sulit distyle active statenya, 
-        # kita andalkan visual feedback default click)
         if st.button(item, key=f"nav_main_{i}", use_container_width=True):
             st.session_state.menu = item
             st.rerun()
-
 st.markdown('</div>', unsafe_allow_html=True)
 menu = st.session_state.menu
 
 # ==========================================
-# 1. HALAMAN HOME (FIXED: Card Layout)
+# 1. HALAMAN HOME
 # ==========================================
 if menu == "🏠 Home":
     setBackground(r"backgrounds/guitar-unsplash.jpg")
     
-    st.markdown('<h1 style="text-align:center; color: white; margin-bottom: 2rem;">🎸 Aplikasi Deteksi Chord Gitar</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="text-align:center; margin-bottom: 2rem;">🎸 Aplikasi Deteksi Chord Gitar</h1>', unsafe_allow_html=True)
     
-    # Gunakan Container dan Columns asli Streamlit agar responsif dan tidak terpotong
-    # Gap 'medium' memberikan jarak yang pas
     c1, c2, c3 = st.columns(3, gap="medium")
 
-    # --- Card 1: Kuis ---
     with c1:
         st.markdown('<div class="home-card">', unsafe_allow_html=True)
         st.markdown("### 🎸 Kuis Deteksi")
-        render_image("kuis.png") # Gambar otomatis fit (contain)
+        render_image("kuis.png") 
         st.write("Jawab pertanyaan kuis dengan menunjukkan chord.")
         if st.button("MULAI KUIS", key="home_quiz", use_container_width=True):
             st.session_state.menu = "🎸 Kuis"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # --- Card 2: Realtime ---
     with c2:
         st.markdown('<div class="home-card">', unsafe_allow_html=True)
         st.markdown("### 🎥 Deteksi Live")
@@ -212,7 +210,6 @@ if menu == "🏠 Home":
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Card 3: Upload ---
     with c3:
         st.markdown('<div class="home-card">', unsafe_allow_html=True)
         st.markdown("### 📷 Upload Foto")
@@ -224,7 +221,7 @@ if menu == "🏠 Home":
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. HALAMAN KUIS (FIXED: No Skip Button)
+# 2. HALAMAN KUIS
 # ==========================================
 elif menu == "🎸 Kuis":
     setBackground(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
@@ -254,13 +251,10 @@ elif menu == "🎸 Kuis":
         d_path = loadChordDiagram(st.session_state.quiz_target)
         if d_path:
             st.image(d_path, caption=None, use_container_width=True)
-        
-        # [Tombol Lewati SUDAH DIHAPUS sesuai permintaan]
 
     if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
 
-    # Auto-Next Logic
     if ctx.state.playing:
         placeholder = st.empty()
         while ctx.state.playing:
@@ -298,21 +292,16 @@ elif menu == "📷 Upload":
     st.markdown("<h3 style='text-align: center; margin:0; color:white;'>📷 Upload Gambar</h3>", unsafe_allow_html=True)
 
     c1, c2 = st.columns([1, 1])
-    
     with c1:
         uploadedFile = st.file_uploader("Pilih gambar", type=["jpg", "png"])
-
     with c2:
         if uploadedFile is not None:
             bytesData = np.frombuffer(uploadedFile.read(), np.uint8)
             image = cv2.imdecode(bytesData, cv2.IMREAD_COLOR)
-            
             result = model.predict(image, verbose=False, conf=0.5)
             annotatedFrame = result[0].plot()
             annotatedFrameRGB = cv2.cvtColor(annotatedFrame, cv2.COLOR_BGR2RGB)
-            
             st.image(annotatedFrameRGB, use_container_width=True)
-
             if len(result[0].boxes.cls) > 0:
                 detected = list(set([result[0].names[int(c)] for c in result[0].boxes.cls]))
                 st.success(f"Hasil: **{', '.join(detected)}**")
