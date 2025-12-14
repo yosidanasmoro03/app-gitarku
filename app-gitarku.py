@@ -12,24 +12,112 @@ from huggingface_hub import hf_hub_download
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase, RTCConfiguration
 
 # ==========================================
-# 1. KONFIGURASI HALAMAN & CSS
+# 1. KONFIGURASI HALAMAN & CSS (PENTING UNTUK UKURAN UI)
 # ==========================================
 
 st.set_page_config(layout="wide", page_title="App Gitarku", initial_sidebar_state="collapsed")
+
+# Inject CSS untuk memangkas ruang kosong (Padding) dan mengecilkan elemen
+st.markdown("""
+    <style>
+        /* 1. Mengurangi Padding Halaman Utama secara drastis */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+            max-width: 100%;
+        }
+        
+        /* 2. Mengecilkan Judul H1 */
+        h1 {
+            font-size: 1.8rem !important;
+            margin-bottom: 0.5rem !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        /* 3. Mengatur Navbar agar lebih tipis */
+        div.stButton > button {
+            padding: 0.25rem 1rem !important;
+            font-size: 0.9rem !important;
+        }
+        
+        /* 4. Memastikan Video WebRTC tidak terlalu tinggi pada layar lebar */
+        /* Kita batasi max-height elemen video agar tidak memaksa scroll */
+        video {
+            max-height: 60vh !important; 
+            width: 100% !important;
+            object-fit: contain !important;
+        }
+        
+        /* 5. Membatasi tinggi gambar diagram agar proporsional */
+        [data-testid="stImage"] img {
+            max-height: 250px !important;
+            object-fit: contain !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
-# Load CSS Eksternal (Hanya ini yang dibutuhkan)
-def loadCss(filePath):
-    if os.path.exists(filePath):
-        with open(filePath, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# ==========================================
+# LOAD MODEL
+# ==========================================
 
-loadCss("styles/styles.css") # Panggil fungsi loadCss di awal
+@st.cache_resource
+def loadModel():
+    # Pastikan repo_id dan filename benar
+    try:
+        modelPath = hf_hub_download(
+            repo_id="yosidanasmoro03/bestModels",
+            filename="best.pt"
+        )
+        return YOLO(modelPath)
+    except Exception as e:
+        return None
 
-# Set Background
+model = loadModel()
+if model is None:
+    st.error("Gagal memuat model. Cek koneksi internet.")
+    st.stop()
+
+# ==========================================
+# LOGIKA KUIS
+# ==========================================
+
+def next_quiz_question():
+    questionList = {
+        "Bentuk jari chord C": "C-Chord", # Teks diperpendek agar muat di UI compact
+        "Tunjukkan chord G": "G-Chord",
+        "Bentuk chord D": "D-Chord",
+        "Chord A di fretboard": "A-Chord",
+        "Tunjukkan chord E": "E-Chord",
+        "Posisi jari chord Am": "Am-Chord",
+        "Tampilkan chord F": "F-Chord",
+        "Bentuk chord Bm": "Bm-Chord",
+        "Tunjukkan chord Dm": "Dm-Chord",
+        "Bentuk chord Em": "Em-Chord"
+    }
+    q_text, q_target = random.choice(list(questionList.items()))
+    st.session_state.quiz_target = q_target
+    st.session_state.quiz_text = q_text
+    st.session_state["force_rerun"] = True
+
+# Helper Diagram
+def loadChordDiagram(namaChord):
+    clean_name = namaChord.replace("-Chord", "") 
+    possible_names = [namaChord, clean_name]
+    for name in possible_names:
+        for ext in (".png", ".jpg", ".jpeg"):
+            path = f"chord_diagrams/{name}{ext}"
+            if os.path.exists(path):
+                return path
+    return None
+
+# Helper Background
 def setBackground(imagePath):
     if os.path.exists(imagePath):
         with open(imagePath, "rb") as f:
@@ -50,58 +138,6 @@ def setBackground(imagePath):
 def render_image(filename):
     if os.path.exists(filename):
         st.image(filename, use_container_width=True)
-
-# ==========================================
-# LOAD MODEL
-# ==========================================
-
-@st.cache_resource
-def loadModel():
-    try:
-        modelPath = hf_hub_download(
-            repo_id="yosidanasmoro03/bestModels",
-            filename="best.pt"
-        )
-        return YOLO(modelPath)
-    except Exception:
-        return None
-
-model = loadModel()
-if model is None:
-    st.error("Gagal memuat model. Cek koneksi internet.")
-    st.stop()
-
-# ==========================================
-# LOGIKA KUIS
-# ==========================================
-
-def next_quiz_question():
-    questionList = {
-        "Bentuk jari chord C": "C-Chord",
-        "Tunjukkan chord G": "G-Chord",
-        "Bentuk chord D": "D-Chord",
-        "Chord A di fretboard": "A-Chord",
-        "Tunjukkan chord E": "E-Chord",
-        "Posisi jari chord Am": "Am-Chord",
-        "Tampilkan chord F": "F-Chord",
-        "Bentuk chord Bm": "Bm-Chord",
-        "Tunjukkan chord Dm": "Dm-Chord",
-        "Bentuk chord Em": "Em-Chord"
-    }
-    q_text, q_target = random.choice(list(questionList.items()))
-    st.session_state.quiz_target = q_target
-    st.session_state.quiz_text = q_text
-    st.session_state["force_rerun"] = True
-
-def loadChordDiagram(namaChord):
-    clean_name = namaChord.replace("-Chord", "") 
-    possible_names = [namaChord, clean_name]
-    for name in possible_names:
-        for ext in (".png", ".jpg", ".jpeg"):
-            path = f"chord_diagrams/{name}{ext}"
-            if os.path.exists(path):
-                return path
-    return None
 
 # ==========================================
 # PROCESSORS
@@ -157,53 +193,17 @@ class RealtimeProcessor(VideoProcessorBase):
 if "menu" not in st.session_state:
     st.session_state.menu = "🏠 Home"
 
-# Navbar Renderer (Menggunakan kelas CSS 'navbar' dan 'nav-btn')
+# Navbar Mini
 navItems = ["🏠 Home", "🎸 Kuis", "🎥 Real-time", "📷 Upload"]
-
-st.markdown('<div class="navbar" style="text-align:center;">', unsafe_allow_html=True)
 cols = st.columns(len(navItems))
 for i, item in enumerate(navItems):
     with cols[i]:
-        activeClass = "active" if st.session_state.menu == item else ""
-        
-        # Menggunakan HTML/Markdown untuk merender tombol dengan kelas CSS
-        # Ini penting agar styling dari styles.css berfungsi
-        buttonHtml = f"""
-        <button class="nav-btn {activeClass}" onclick="window.parent.postMessage('streamlit:rerun', '*');" name="nav_click" value="{item}">
-            {item}
-        </button>
-        """
-        st.markdown(buttonHtml, unsafe_allow_html=True)
-        
-        # Logika Reruns Streamlit (Jika tombol diklik)
-        if st.session_state.get(f"nav_click_{i}") != item and st.session_state.get(f"nav_click_{i}") is not None:
-             st.session_state.menu = st.session_state[f"nav_click_{i}"]
-             st.rerun()
-
-menu = st.session_state.menu
-
-# Logika untuk menangkap klik dari tombol custom (perlu workaround)
-# Karena kita tidak bisa menggunakan st.button(), kita pakai st.form yang tersembunyi
-# Namun, cara paling stabil adalah menggunakan st.button biasa dengan CSS override
-
-# Karena kita tidak bisa menggunakan form di Streamlit, kita kembali ke st.button() 
-# dan mengandalkan CSS override pada stButton > button
-st.markdown('</div>', unsafe_allow_html=True) # Tutup div navbar
-
-# Kita ulang navbar menggunakan st.button biasa, karena HTML custom tidak bisa memicu st.rerun
-# Tanpa ini, navigasi tidak akan berfungsi.
-
-# Hapus navbar HTML di atas dan ganti dengan ini untuk fungsionalitas:
-st.markdown('<div class="navbar" style="margin-top: -1.5rem;">', unsafe_allow_html=True)
-nav_cols = st.columns(len(navItems))
-for i, item in enumerate(navItems):
-    with nav_cols[i]:
-        # Gunakan key unik. CSS styles.css akan menimpa tampilan tombol ini.
-        if st.button(item, key=f"nav_func_{i}", use_container_width=True):
+        # Gunakan tombol kecil
+        if st.button(item, key=f"nav_{i}", use_container_width=True):
             st.session_state.menu = item
             st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
-# Sisa elemen navbar yang tidak ter-wrap st.button akan ditangani oleh CSS di styles.css
+
+menu = st.session_state.menu
 
 # ==========================================
 # 1. HALAMAN HOME
@@ -211,50 +211,32 @@ st.markdown('</div>', unsafe_allow_html=True)
 if menu == "🏠 Home":
     setBackground(r"backgrounds/guitar-unsplash.jpg")
     
-    st.markdown('<div class="title">🎸 Aplikasi Deteksi Chord Gitar</div>', unsafe_allow_html=True)
+    st.markdown('<h1 style="text-align:center; color: white; text-shadow: 2px 2px 4px #000000;">🎸 Deteksi Chord Gitar</h1>', unsafe_allow_html=True)
     
-    # Gunakan layout yang dirancang untuk CSS card-container
-    st.markdown('<div class="card-container">', unsafe_allow_html=True)
-    
-    home_cols = st.columns(3, gap="large")
+    # Gunakan Container agar layout lebih rapi
+    with st.container():
+        c1, c2, c3 = st.columns(3, gap="small")
 
-    with home_cols[0]:
-        st.markdown("""
-        <div class="card" style="background-color: rgba(255, 255, 255, 0.9);">
-            <div class="card-title">🎸 Kuis Deteksi Chord</div>
-            <img src="data:image/png;base64,{}" alt="Kuis">
-            <div class="card-desc">Siapkan gitar Anda. Sistem akan meminta Anda membentuk chord tertentu dan akan mendeteksinya secara otomatis untuk melanjutkan ke soal berikutnya.</div>
-        </div>
-        """.format(base64.b64encode(open("kuis.png", "rb").read()).decode()), unsafe_allow_html=True)
-        if st.button("MULAI KUIS", key="home_quiz", use_container_width=True):
-            st.session_state.menu = "🎸 Kuis"
-            st.rerun()
-    
-    with home_cols[1]:
-        st.markdown("""
-        <div class="card" style="background-color: rgba(255, 255, 255, 0.9);">
-            <div class="card-title">🎥 Deteksi Real-time</div>
-            <img src="data:image/png;base64,{}" alt="Real-time">
-            <div class="card-desc">Gunakan kamera Anda untuk mendeteksi chord gitar secara langsung tanpa batasan soal atau waktu.</div>
-        </div>
-        """.format(base64.b64encode(open("realtime.png", "rb").read()).decode()), unsafe_allow_html=True)
-        if st.button("BUKA KAMERA", key="home_real", use_container_width=True):
-            st.session_state.menu = "🎥 Real-time"
-            st.rerun()
+        with c1:
+            st.markdown("##### 🎸 Kuis")
+            render_image("kuis.png") 
+            if st.button("MULAI", key="home_quiz", use_container_width=True):
+                st.session_state.menu = "🎸 Kuis"
+                st.rerun()
+        
+        with c2:
+            st.markdown("##### 🎥 Live")
+            render_image("realtime.png")
+            if st.button("KAMERA", key="home_real", use_container_width=True):
+                st.session_state.menu = "🎥 Real-time"
+                st.rerun()
 
-    with home_cols[2]:
-        st.markdown("""
-        <div class="card" style="background-color: rgba(255, 255, 255, 0.9);">
-            <div class="card-title">📷 Upload Gambar</div>
-            <img src="data:image/png;base64,{}" alt="Upload">
-            <div class="card-desc">Unggah foto statis chord yang sedang Anda mainkan, dan sistem akan mengidentifikasi chord tersebut.</div>
-        </div>
-        """.format(base64.b64encode(open("upload.png", "rb").read()).decode()), unsafe_allow_html=True)
-        if st.button("UPLOAD FOTO", key="home_up", use_container_width=True):
-            st.session_state.menu = "📷 Upload"
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        with c3:
+            st.markdown("##### 📷 Foto")
+            render_image("upload.png")
+            if st.button("UPLOAD", key="home_up", use_container_width=True):
+                st.session_state.menu = "📷 Upload"
+                st.rerun()
 
 # ==========================================
 # 2. HALAMAN KUIS (COMPACT MODE)
@@ -262,12 +244,15 @@ if menu == "🏠 Home":
 elif menu == "🎸 Kuis":
     setBackground(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
     
-    st.markdown("<h1 style='text-align: center;'>🎸 Kuis Chord</h1>", unsafe_allow_html=True)
+    # Judul Kecil di Kiri atas atau Tengah
+    st.markdown("<h3 style='text-align: center; margin:0; padding:0; color:white;'>🎸 Kuis Chord</h3>", unsafe_allow_html=True)
 
     if "quiz_target" not in st.session_state:
         next_quiz_question()
         st.rerun()
 
+    # Layout: Kamera (Kiri - Lebar) | Info (Kanan - Sempit)
+    # Rasio 1.5 : 1 agar kamera tidak terlalu tinggi
     col_cam, col_info = st.columns([1.5, 1], gap="small")
 
     with col_cam:
@@ -281,12 +266,18 @@ elif menu == "🎸 Kuis":
         )
 
     with col_info:
+        # Tampilkan Info dengan padat
         st.info(f"Target: **{st.session_state.quiz_target}**")
         st.markdown(f"**{st.session_state.quiz_text}**")
         
         d_path = loadChordDiagram(st.session_state.quiz_target)
         if d_path:
+            # Gambar diagram dibatasi tingginya oleh CSS
             st.image(d_path, caption=None, use_container_width=True)
+        
+        if st.button("Lewati ➡", key="skip_btn", use_container_width=True):
+            next_quiz_question()
+            st.rerun()
 
     if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
@@ -308,8 +299,9 @@ elif menu == "🎸 Kuis":
 # ==========================================
 elif menu == "🎥 Real-time":
     setBackground(r"backgrounds/leandro-unsplash.jpg")
-    st.markdown("<h1 style='text-align: center;'>🎥 Mode Real-time</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin:0; color:white;'>🎥 Mode Real-time</h3>", unsafe_allow_html=True)
     
+    # Gunakan kolom tengah agar video tidak terlalu lebar (dan tinggi)
     c_pad_l, c_main, c_pad_r = st.columns([1, 4, 1])
     with c_main:
         webrtc_streamer(
@@ -326,7 +318,7 @@ elif menu == "🎥 Real-time":
 # ==========================================
 elif menu == "📷 Upload":
     setBackground(r"backgrounds/adi-unsplash.jpg")
-    st.markdown("<h1 style='text-align: center;'>📷 Upload Gambar</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin:0; color:white;'>📷 Upload Gambar</h3>", unsafe_allow_html=True)
 
     c1, c2 = st.columns([1, 1])
     
@@ -337,6 +329,9 @@ elif menu == "📷 Upload":
         if uploadedFile is not None:
             bytesData = np.frombuffer(uploadedFile.read(), np.uint8)
             image = cv2.imdecode(bytesData, cv2.IMREAD_COLOR)
+            
+            # Resize image agar processing lebih cepat dan tampilan tidak raksasa
+            # Opsional: image = cv2.resize(image, (640, 640)) 
             
             result = model.predict(image, verbose=False, conf=0.5)
             annotatedFrame = result[0].plot()
@@ -349,4 +344,3 @@ elif menu == "📷 Upload":
                 st.success(f"Hasil: **{', '.join(detected)}**")
             else:
                 st.warning("Tidak terdeteksi.")
-
