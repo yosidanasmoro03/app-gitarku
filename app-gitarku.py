@@ -15,6 +15,8 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase, RT
 # KONFIGURASI AWAL
 # ==========================================
 
+st.set_page_config(layout="wide", page_title="App Gitarku") # Mengatur layout default menjadi wide agar muat side-by-side
+
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
@@ -229,6 +231,8 @@ elif menu == "🎸 Kuis Deteksi Chord":
         next_quiz_question()
         st.rerun()
 
+    col_cam, col_info = st.columns([2, 1], gap="medium")
+
     c1, c2 = st.columns([2, 1])
     with c1:
         st.markdown(f"### Pertanyaan: \n## **{st.session_state.quiz_text}**")
@@ -313,4 +317,5 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi.")
+
 
