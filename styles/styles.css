@@ -94,15 +94,8 @@ div[data-testid="stHorizontalBlock"] .stButton > button:hover {
 /* Gambar di dalam HTML Card */
 .home-card img {
     max-height: 300px;     /* DINAIKKAN: Dari 90px menjadi 130px (Ukuran Pas) */
-    max-width: 90%;        /* Lebar sedikit dilonggarkan */
+    max-width: 200%;        /* Lebar sedikit dilonggarkan */
     object-fit: contain;   
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); /* Shadow sedikit dipertegas agar pop-up */
-    transition: transform 0.3s ease; /* Efek halus saat hover */
-}
-
-/* Tambahan: Efek saat mouse diarahkan ke gambar */
-.home-card:hover img {
-    transform: scale(1.05); /* Gambar membesar sedikit saat disentuh kursor */
 }
 
 /* 6. WEBRTC VIDEO */
@@ -121,6 +114,7 @@ video {
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.2);
 }
+
 
 
 
