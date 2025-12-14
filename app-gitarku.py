@@ -273,12 +273,6 @@ elif menu == "🎸 Kuis Deteksi Chord":
 
             time.sleep(0.2) # Sleep kecil agar CPU tidak jebol
 
-    # Tombol Manual
-    st.write("")
-    if st.button("Lewati Soal (Manual)", type="secondary"):
-        next_quiz_question()
-        st.rerun()
-
 # ==========================================
 # 3. HALAMAN REALTIME
 # ==========================================
@@ -319,3 +313,4 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi.")
+
