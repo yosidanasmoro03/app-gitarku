@@ -34,6 +34,17 @@ def loadCss(filePath):
 loadCss("styles/styles.css") 
 
 # ==========================================
+# HELPER BARU: KONVERSI GAMBAR KE BASE64
+# ==========================================
+def get_img_as_base64(file_path):
+    """Membaca file gambar dan mengubahnya menjadi string base64"""
+    if not os.path.exists(file_path):
+        return ""
+    with open(file_path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+# ==========================================
 # FUNGSI BACKGROUND DENGAN OVERLAY
 # ==========================================
 def setBackground(imagePath):
@@ -181,7 +192,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 menu = st.session_state.menu
 
 # ==========================================
-# 1. HALAMAN HOME
+# 1. HALAMAN HOME (UPDATED LAYOUT)
 # ==========================================
 if menu == "🏠 Home":
     setBackground(r"backgrounds/guitar-unsplash.jpg")
@@ -190,36 +201,58 @@ if menu == "🏠 Home":
     
     c1, c2, c3 = st.columns(3, gap="medium")
 
+    # --- CARD 1: KUIS ---
     with c1:
-        st.markdown('<div class="home-card">', unsafe_allow_html=True)
-        st.markdown("### 🎸 Kuis Deteksi")
-        render_image("kuis.png") 
-        st.write("Jawab pertanyaan kuis dengan menunjukkan chord.")
+        # Kita bungkus Judul, Gambar, dan Deskripsi dalam satu HTML block agar bisa dicenter CSS
+        img_b64 = get_img_as_base64("kuis.png")
+        st.markdown(f"""
+        <div class="home-card">
+            <h3>🎸 Kuis Deteksi</h3>
+            <div class="img-container">
+                <img src="data:image/png;base64,{img_b64}" alt="Kuis">
+            </div>
+            <p>Jawab pertanyaan kuis dengan menunjukkan chord.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Tombol tetap menggunakan Streamlit native agar fungsional
         if st.button("MULAI KUIS", key="home_quiz", use_container_width=True):
             st.session_state.menu = "🎸 Kuis"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
     
+    # --- CARD 2: REALTIME ---
     with c2:
-        st.markdown('<div class="home-card">', unsafe_allow_html=True)
-        st.markdown("### 🎥 Deteksi Live")
-        render_image("realtime.png")
-        st.write("Deteksi bebas menggunakan kamera langsung.")
+        img_b64 = get_img_as_base64("realtime.png")
+        st.markdown(f"""
+        <div class="home-card">
+            <h3>🎥 Deteksi Live</h3>
+            <div class="img-container">
+                <img src="data:image/png;base64,{img_b64}" alt="Live">
+            </div>
+            <p>Deteksi bebas menggunakan kamera langsung.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         if st.button("BUKA KAMERA", key="home_real", use_container_width=True):
             st.session_state.menu = "🎥 Real-time"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- CARD 3: UPLOAD ---
     with c3:
-        st.markdown('<div class="home-card">', unsafe_allow_html=True)
-        st.markdown("### 📷 Upload Foto")
-        render_image("upload.png")
-        st.write("Upload gambar statis untuk dideteksi.")
+        img_b64 = get_img_as_base64("upload.png")
+        st.markdown(f"""
+        <div class="home-card">
+            <h3>📷 Upload Foto</h3>
+            <div class="img-container">
+                <img src="data:image/png;base64,{img_b64}" alt="Upload">
+            </div>
+            <p>Upload gambar statis untuk dideteksi.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         if st.button("UPLOAD GAMBAR", key="home_up", use_container_width=True):
             st.session_state.menu = "📷 Upload"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
 # ==========================================
 # 2. HALAMAN KUIS
 # ==========================================
@@ -307,3 +340,4 @@ elif menu == "📷 Upload":
                 st.success(f"Hasil: **{', '.join(detected)}**")
             else:
                 st.warning("Tidak terdeteksi.")
+
