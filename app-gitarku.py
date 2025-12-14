@@ -278,6 +278,9 @@ def render_upload_page():
     c1, c2 = st.columns([1,1])
 
     with c1:
+        uploaded_file = st.file_uploader("Pilih gambar", type=["jpg", "png"])
+    
+    with c2:
         uploaded_file is not None:
             bytes_data = np.frombuffer(uploaded_file.read(), np.uint8)
             image = cv2.imdecode(bytes_data, cv2.IMREAD_COLOR)
@@ -334,5 +337,6 @@ def main():
 if __name__ == "__main__":
     main()
       
+
 
 
