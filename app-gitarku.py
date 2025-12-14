@@ -17,7 +17,7 @@ from huggingface_hub import hf_hub_download
 
 st.set_page_config(
     layout="wide",
-    page_title="App Gitarku"
+    page_title="App Gitarku",
     initial_sidebar_state="collapsed"
 )
 
@@ -334,3 +334,4 @@ def main():
 if __name__ == "__main__":
     main()
       
+
