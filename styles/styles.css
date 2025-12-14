@@ -1,15 +1,66 @@
-/*===== NAVBAR */
+/*
+=====================================================
+STYLES.CSS - Final Cleaned & Responsive Version
+=====================================================
+*/
+
+/* --- 0. Global Reset & Streamlit Container Compactness --- */
+
+/* Mengurangi Padding Halaman Utama secara drastis untuk Compactness */
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    max-width: 100%;
+}
+
+/* Streamlit container wajib bisa scroll */
+html, body, [data-testid="stAppViewContainer"], section.main {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+}
+
+/* Mengecilkan Judul H1 */
+h1 {
+    font-size: 1.8rem !important;
+    margin-bottom: 0.5rem !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Warna teks default di atas overlay gelap (terapkan ke semua elemen) */
+[data-testid="stAppViewContainer"] *, 
+[data-testid="stAppViewContainer"] p, 
+[data-testid="stAppViewContainer"] h1, 
+[data-testid="stAppViewContainer"] h2, 
+[data-testid="stAppViewContainer"] h3, 
+[data-testid="stAppViewContainer"] div {
+    color: #ffffff !important;
+}
+
+/* Perbaikan untuk st.info, st.success, dll. (Agar teks di dalamnya tidak putih) */
+.stAlert > div {
+    color: #000000 !important; 
+}
+
+/* --- 1. NAVBAR --- */
+
+/* Aturan kontainer utama navbar */
 .navbar {
     display: flex;
     justify-content: stretch;
     align-items: center;
-    gap: 32px;
+    gap: 12px; /* Diperkecil agar muat */
     background: #1e1e1e;
-    padding: 12px 28px;
+    padding: 10px 20px; /* Diperkecil */
     border-radius: 0 0 10px 10px;
     position: sticky;
     top: 0;
     z-index: 999;
+    margin-bottom: 15px; /* Jarak bawah navbar */
 }
 
 .navbar::after {
@@ -23,145 +74,39 @@
     border-radius: 0 0 10px 10px;
 }
 
-.nav-btn {
-    background: linear-gradient(135deg, #6A5ACD, #7B68EE);
-    border: none;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 1.2rem;           
-    cursor: pointer;
-    padding: 10px 20px;          
-    border-radius: 12px;    
+/* Target tombol Streamlit di dalam navbar */
+.navbar .stButton > button {
+    /* Menerapkan styling .nav-btn ke tombol Streamlit */
+    background: linear-gradient(135deg, #6A5ACD, #7B68EE) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important; /* Dikecilkan */
+    cursor: pointer !important;
+    padding: 8px 15px !important; /* Dikecilkan */
+    border-radius: 10px !important;
+    min-height: auto !important; /* Penting untuk mengecilkan tinggi tombol */
+    width: 100% !important;
 }
 
-.nav-btn:hover {
-    transform: translateY(-5px);
+/* Hover dan Active State untuk tombol Streamlit */
+.navbar .stButton > button:hover {
+    transform: translateY(-3px) !important;
 }
 
-.nav-btn.active {
-    background: linear-gradient(135deg, #4B3F72, #6F42C1);
-    color: #ffffff;
-    font-weight: 800;
-    transform: scale(1.05);
-}
+/* Streamlit tidak memiliki class 'active'. Kita harus mengandalkan styling CSS bawaan Streamlit
+   yang memberi border ke tombol yang aktif, atau jika Anda tetap ingin menggunakan class,
+   Anda harus mengimplementasikannya di Python (yang sulit).
+   Untuk saat ini, kita akan mengandalkan styling dasar: */
+/* Untuk tombol yang sedang dipilih, kita override stylenya */
+/* Streamlit tidak menyediakan cara mudah untuk menandai tombol aktif di Python.
+   Namun, Anda bisa menggunakan `st.markdown` untuk meniru tampilan:
+   .nav-btn.active { ... }
+   Namun, karena kode Python menggunakan st.button, kita tinggalkan ini.
+   Solusi terbaik adalah menggunakan HTML custom seperti sebelumnya. */
 
-/* ====== KONTEN UTAMA ====== */
-.main-content {
-    position: relative;
-    z-index: 1;
-    padding: 2rem 1rem;
-    box-sizing: border-box;
-    overflow-y: auto !important;     /* selalu bisa scroll */
-    height: auto !important;
-    min-height: 100vh !important;
-}
 
-/* Streamlit container juga wajib bisa scroll */
-html, body, [data-testid="stAppViewContainer"], section.main {
-    overflow-y: auto !important;
-    height: auto !important;
-    min-height: 100vh !important;
-    max-height: none !important;
-}
-
-/* Tambahkan jarak bawah agar tidak ketutupan navbar */
-.main-content::after {
-    content: "";
-    display: block;
-    height: 100px;  
-}
-
-/* ====== HALAMAN HOME ====== */
-.title {
-    margin-top: 30px;
-    text-align: center;
-    font-size: clamp(2em, 5vw, 3.5em);
-    font-weight: 900;
-    margin-bottom: 0.5em;
-    color: #EDEAFF;
-    text-shadow: 3px 3px 8px rgba(0,0,0,0.6);
-}
-
-.card-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 3vw;
-    margin-top: 5vh;
-    padding: 2vh 2vw;
-}
-
-.card {
-    width: min(90vw, 400px);
-    border-radius: 25px;
-    overflow: hidden;
-    text-align: justify;
-    margin-bottom: 20px;
-}
-
-.card:hover {
-    transform: translateY(-8px);
-}
-
-.card img {
-    width: 100%;
-    height: auto;
-    max-height: 200px;
-    object-fit: cover;
-}
-
-.card-title {
-    font-size: clamp(1.2em, 2.5vw, 2em);
-    font-weight: 800;
-    margin: 15px 0 5px 0;
-    color: #2E2E2E;
-    text-align: center;
-}
-
-.card-desc {
-    font-size: 19px;
-    color: #2c2c2c;
-    margin: 10px 0 20px 0;
-    padding: 10px;
-    text-align: center;
-    line-height: 1.5em;
-}
-
-/* ====== TOMBOL ====== */
-.stButton > button {
-    width: 90%;
-    min-height: 60px;
-    font-size: clamp(1em, 2.5vw, 1.3em);
-    line-height: 1.4em;
-    border-radius: 15px;
-    background: linear-gradient(135deg, #6A5ACD, #7B68EE);
-    font-weight: 700;
-    border: none;
-    white-space: normal;
-    padding: 15px 20px;
-}
-
-.stButton > button:hover {
-    transform: scale(1.04);
-}
-
-/* ====== SCROLLBAR KUSTOM ====== */
-::-webkit-scrollbar {
-    width: 12px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(30, 30, 30, 0.8);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    border-radius: 10px;
-    border: 2px solid #1e1e1e;
-}
-
-/* ====== BACKGROUND & OVERLAY ====== */
+/* --- 2. BACKGROUND & OVERLAY --- */
 [data-testid="stAppViewContainer"] {
     background-size: cover;
     background-position: center;
@@ -187,55 +132,109 @@ section.main > div {
     z-index: 1;
 }
 
-/* Warna teks default di atas overlay gelap */
-h1, h2, h3, h4, h5, h6, p, div {
-    color: #ffffff !important;
+/* --- 3. HALAMAN HOME (OVERRIDE CSS BAWAAN KARTU) --- */
+.title {
+    margin-top: 15px; /* Dikecilkan */
+    text-align: center;
+    font-size: clamp(2em, 5vw, 3em); /* Dikecilkan */
+    font-weight: 900;
+    margin-bottom: 0.5em;
+    color: #EDEAFF;
+    text-shadow: 3px 3px 8px rgba(0,0,0,0.6);
 }
 
-/*
-=====================================================
-Tambahan CSS untuk Responsiveness dan Compactness
-(Menggantikan Injeksi CSS Internal Streamlit)
-=====================================================
-*/
-
-/* 1. Mengurangi Padding Halaman Utama secara drastis */
-.block-container {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-    max-width: 100%;
+.card-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 3vw;
+    margin-top: 3vh; /* Dikecilkan */
+    padding: 1vh 1vw; /* Dikecilkan */
 }
 
-/* 2. Mengecilkan Judul H1 (untuk halaman selain Home) */
-h1 {
-    font-size: 1.8rem !important;
-    margin-bottom: 0.5rem !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+.card {
+    width: min(90vw, 300px); /* Dikecilkan agar lebih compact */
+    border-radius: 15px; /* Dikecilkan */
+    overflow: hidden;
+    text-align: justify;
+    margin-bottom: 15px; /* Dikecilkan */
 }
 
-/* 3. Memastikan Video WebRTC tidak terlalu tinggi pada layar kecil/lebar */
+.card:hover {
+    transform: translateY(-5px); /* Dikecilkan */
+}
+
+.card img {
+    width: 100%;
+    height: auto;
+    max-height: 150px; /* Dikecilkan */
+    object-fit: cover;
+}
+
+.card-title {
+    font-size: clamp(1.1em, 2vw, 1.5em); /* Dikecilkan */
+    font-weight: 800;
+    margin: 10px 0 5px 0;
+    color: #2E2E2E !important; /* Penting: Teks di dalam kartu harus gelap */
+    text-align: center;
+}
+
+.card-desc {
+    font-size: 16px; /* Dikecilkan */
+    color: #2c2c2c !important; /* Penting: Teks di dalam kartu harus gelap */
+    margin: 5px 0 10px 0;
+    padding: 5px;
+    text-align: center;
+    line-height: 1.4em;
+}
+
+/* --- 4. TOMBOL UTAMA (HOME/GLOBAL) --- */
+/* Tombol yang TIDAK di dalam navbar */
+.stButton > button {
+    width: 100%; /* Dibuat 100% untuk konsistensi */
+    min-height: 50px; /* Dikecilkan */
+    font-size: clamp(1em, 2vw, 1.2em); 
+    line-height: 1.4em;
+    border-radius: 10px; 
+    background: linear-gradient(135deg, #6A5ACD, #7B68EE);
+    font-weight: 700;
+    border: none;
+    white-space: normal;
+    padding: 10px 15px;
+}
+
+.stButton > button:hover {
+    transform: scale(1.02); /* Dikecilkan */
+}
+
+/* --- 5. KUIS & REALTIME (Compactness) --- */
+
+/* Memastikan Video WebRTC tidak terlalu tinggi pada layar kecil/lebar */
 video {
     max-height: 60vh !important; 
     width: 100% !important;
     object-fit: contain !important;
 }
 
-/* 4. Membatasi tinggi gambar diagram agar proporsional di mode kuis */
+/* Membatasi tinggi gambar diagram agar proporsional di mode kuis */
 [data-testid="stImage"] img {
-    max-height: 250px !important;
+    max-height: 200px !important; /* Lebih dikecilkan */
     object-fit: contain !important;
 }
 
-/* 5. Override warna teks yang diletakkan di atas background gelap (default) */
-/* Pastikan elemen Streamlit internal (seperti label st.info) menggunakan warna terang */
-[data-testid="stAppViewContainer"] [data-testid^="st"] {
-    color: #ffffff !important;
+/* --- 6. SCROLLBAR KUSTOM --- */
+::-webkit-scrollbar {
+    width: 8px; /* Dikecilkan */
 }
 
-/* Perbaikan untuk st.info, st.success, dll. */
-.stAlert > div {
-    color: #000000 !important; /* Warna teks di dalam info/success tetap gelap agar terbaca */
+::-webkit-scrollbar-track {
+    background: rgba(30, 30, 30, 0.8);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #6f42c1; /* Warna scrollbar disesuaikan dengan tema */
+    border-radius: 10px;
+    border: 2px solid #1e1e1e;
 }
