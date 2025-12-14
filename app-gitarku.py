@@ -48,7 +48,8 @@ def render_image(filename):
     if os.path.exists(filename):
         st.image(filename, use_container_width=True)
     else:
-        st.warning(f"File {filename} tidak ditemukan.")
+        # Placeholder kosong jika gambar tidak ada agar tidak error
+        st.write(f"") 
 
 # ==========================================
 # LOAD MODEL
@@ -88,7 +89,7 @@ def next_quiz_question():
     q_text, q_target = random.choice(list(questionList.items()))
     st.session_state.quiz_target = q_target
     st.session_state.quiz_text = q_text
-    st.session_state["force_rerun"] = True # Trigger rerun
+    st.session_state["force_rerun"] = True
 
 # ==========================================
 # VIDEO PROCESSORS
@@ -99,7 +100,6 @@ class QuizProcessor(VideoProcessorBase):
         self.model = model
         self.target_chord = None
         self.lock = threading.Lock()
-        # Flag untuk komunikasi ke UI
         self.correct_detected = False 
 
     def update_target(self, target):
@@ -121,18 +121,16 @@ class QuizProcessor(VideoProcessorBase):
             detected_idx = int(results[0].boxes.cls[0])
             detected_name = results[0].names[detected_idx]
 
-            # Cek jawaban
             if current_target and detected_name == current_target:
                 # Visualisasi BENAR (Hijau)
                 cv2.rectangle(annotated_frame, (50, 50), (450, 150), (0, 255, 0), -1)
                 cv2.putText(annotated_frame, f"BENAR: {detected_name}!", (60, 110), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
                 
-                # Set flag agar UI tahu
                 with self.lock:
                     self.correct_detected = True
             else:
-                # Visualisasi SALAH/Deteksi (Merah)
+                # Visualisasi Deteksi (Merah)
                 cv2.putText(annotated_frame, f"Deteksi: {detected_name}", (50, 50), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         
@@ -148,9 +146,7 @@ class RealtimeProcessor(VideoProcessorBase):
         annotated_frame = results[0].plot()
         return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
-# Helper Diagram
 def loadChordDiagram(namaChord):
-    # Support "C-Chord" atau "C"
     clean_name = namaChord.replace("-Chord", "") 
     possible_names = [namaChord, clean_name]
     for name in possible_names:
@@ -183,7 +179,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 menu = st.session_state.menu
 
 # ==========================================
-# 1. HALAMAN HOME (Updated dengan Gambar)
+# 1. HALAMAN HOME
 # ==========================================
 if menu == "🏠 Home":
     setBackground(r"backgrounds/guitar-unsplash.jpg")
@@ -194,7 +190,6 @@ if menu == "🏠 Home":
 
     with col1:
         st.markdown("### 🎸 Kuis Deteksi")
-        # MENAMPILKAN GAMBAR kuis.png
         render_image("kuis.png") 
         st.write("Jawab pertanyaan kuis dengan menunjukkan chord.")
         if st.button("MULAI KUIS", key="quiz_home", use_container_width=True):
@@ -203,7 +198,6 @@ if menu == "🏠 Home":
     
     with col2:
         st.markdown("### 🎥 Real-time")
-        # MENAMPILKAN GAMBAR realtime.png
         render_image("realtime.png")
         st.write("Deteksi bebas menggunakan kamera langsung.")
         if st.button("BUKA KAMERA", key="realtime_home", use_container_width=True):
@@ -212,7 +206,6 @@ if menu == "🏠 Home":
 
     with col3:
         st.markdown("### 📷 Upload")
-        # MENAMPILKAN GAMBAR upload.png
         render_image("upload.png")
         st.write("Upload gambar statis untuk dideteksi.")
         if st.button("UPLOAD GAMBAR", key="upload_home", use_container_width=True):
@@ -220,7 +213,7 @@ if menu == "🏠 Home":
             st.rerun()
 
 # ==========================================
-# 2. HALAMAN KUIS (Updated: Auto Next)
+# 2. HALAMAN KUIS (LAYOUT DIPERBAIKI)
 # ==========================================
 elif menu == "🎸 Kuis Deteksi Chord":
     setBackground(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
@@ -231,51 +224,54 @@ elif menu == "🎸 Kuis Deteksi Chord":
         next_quiz_question()
         st.rerun()
 
+    # --- MEMBUAT LAYOUT 2 KOLOM (KIRI: KAMERA, KANAN: SOAL & DIAGRAM) ---
     col_cam, col_info = st.columns([2, 1], gap="medium")
 
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        st.markdown(f"### Pertanyaan: \n## **{st.session_state.quiz_text}**")
+    # Kolom 1: Kamera
+    with col_cam:
+        st.write("##### Kamera Anda:")
+        ctx = webrtc_streamer(
+            key="quiz_detector",
+            mode=WebRtcMode.SENDRECV,
+            rtc_configuration=RTC_CONFIGURATION,
+            video_processor_factory=QuizProcessor,
+            media_stream_constraints={"video": True, "audio": False},
+            async_processing=True,
+        )
+
+    # Kolom 2: Informasi Soal & Diagram
+    with col_info:
+        st.markdown(f"**Pertanyaan:**")
+        st.markdown(f"### {st.session_state.quiz_text}")
+        
         st.info(f"Target: **{st.session_state.quiz_target}**")
-    with c2:
+        
         d_path = loadChordDiagram(st.session_state.quiz_target)
         if d_path:
-            st.image(d_path, caption=f"Diagram {st.session_state.quiz_target}")
-    
-    st.write("---")
+            st.image(d_path, caption=f"Diagram {st.session_state.quiz_target}", use_container_width=True)
+        else:
+            st.warning("Diagram tidak tersedia")
 
-    # WEBRTC STREAMER
-    ctx = webrtc_streamer(
-        key="quiz_detector",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=QuizProcessor,
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True,
-    )
-
-    # Kirim target ke processor
+    # Update Target ke Processor (Kirim data soal ke backend video)
     if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
 
-    # ============================================================
-    # TRIK AUTO-NEXT: LOOPING DI UI UNTUK CEK STATUS PROCESSOR
-    # ============================================================
+    # --- AUTO NEXT LOGIC (LOOP TRICK) ---
+    # Logika ini ditaruh di luar kolom agar tidak mengganggu rendering layout
     if ctx.state.playing:
-        placeholder = st.empty()
+        placeholder = st.empty() # Placeholder untuk notifikasi sukses di atas layout
         while ctx.state.playing:
-            # Cek apakah processor mendeteksi "correct_detected"
             if ctx.video_processor and ctx.video_processor.correct_detected:
-                # Tampilkan pesan sukses sebentar
-                placeholder.success(f"✅ BENAR! {st.session_state.quiz_target} Terdeteksi!")
-                time.sleep(1.5) # Jeda agar user lihat notifikasi
+                # Tampilkan notifikasi
+                placeholder.success(f"🎉 BENAR! Chord {st.session_state.quiz_target} Terdeteksi!")
+                time.sleep(1.5)
                 
-                # Ganti Soal & Rerun
+                # Ganti Soal & Refresh
                 next_quiz_question()
                 st.rerun()
-                break # Keluar dari loop
+                break 
 
-            time.sleep(0.2) # Sleep kecil agar CPU tidak jebol
+            time.sleep(0.2)
 
 # ==========================================
 # 3. HALAMAN REALTIME
@@ -284,14 +280,16 @@ elif menu == "🎥 Deteksi Real-time":
     setBackground(r"backgrounds/leandro-unsplash.jpg")
     st.markdown("<h1 style='text-align: center;'>🎥 Deteksi Real-time</h1>", unsafe_allow_html=True)
     
-    webrtc_streamer(
-        key="realtime_detector",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=RealtimeProcessor,
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True,
-    )
+    col_center = st.columns([1, 8, 1])
+    with col_center[1]:
+        webrtc_streamer(
+            key="realtime_detector",
+            mode=WebRtcMode.SENDRECV,
+            rtc_configuration=RTC_CONFIGURATION,
+            video_processor_factory=RealtimeProcessor,
+            media_stream_constraints={"video": True, "audio": False},
+            async_processing=True,
+        )
 
 # ==========================================
 # 4. HALAMAN UPLOAD
@@ -317,5 +315,3 @@ elif menu == "📷 Upload Gambar":
             st.success(f"Chord terdeteksi: {', '.join(detected)}")
         else:
             st.warning("Tidak ada chord terdeteksi.")
-
-
