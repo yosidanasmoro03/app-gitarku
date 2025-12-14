@@ -79,28 +79,30 @@ div[data-testid="stHorizontalBlock"] .stButton > button:hover {
     line-height: 1.3;
 }
 
-/* ============================================================
-   BAGIAN INI YANG DIUBAH UNTUK MENGECILKAN GAMBAR
-============================================================ */
+/* 5. IMAGE SIZING (UKURAN MEDIUM - DIPERBAIKI) */
 
-/* 5. IMAGE SIZING (DIPERBARUI & DIPERKECIL) */
-
-/* Container gambar untuk memastikan centering */
+/* Container gambar */
 .img-container {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
-    height: 110px; /* DIUBAH: Tinggi wadah dikurangi dari 150px menjadi 110px */
-    margin-bottom: 5px;
+    height: 140px;  /* DINAIKKAN: Dari 110px menjadi 140px agar ruang lebih lega */
+    margin-bottom: 10px;
 }
 
 /* Gambar di dalam HTML Card */
 .home-card img {
-    max-height: 90px;      /* DITAMBAH: Batas tinggi absolut gambar maksimal 90px */
-    max-width: 85%;        /* DITAMBAH: Batas lebar maksimal 85% dari wadahnya agar tidak terlalu lebar */
-    object-fit: contain;   /* Gambar utuh tidak terpotong */
-    filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3)); /* Shadow sedikit diperhalus */
+    max-height: 130px;     /* DINAIKKAN: Dari 90px menjadi 130px (Ukuran Pas) */
+    max-width: 90%;        /* Lebar sedikit dilonggarkan */
+    object-fit: contain;   
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); /* Shadow sedikit dipertegas agar pop-up */
+    transition: transform 0.3s ease; /* Efek halus saat hover */
+}
+
+/* Tambahan: Efek saat mouse diarahkan ke gambar */
+.home-card:hover img {
+    transform: scale(1.05); /* Gambar membesar sedikit saat disentuh kursor */
 }
 
 /* 6. WEBRTC VIDEO */
@@ -119,4 +121,5 @@ video {
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.2);
 }
+
 
