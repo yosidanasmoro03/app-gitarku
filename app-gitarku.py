@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.1.google.com:19302"]}]}
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
 # daftar pertanyaan kuis
@@ -212,11 +212,11 @@ def render_quiz_page():
 
     #inisialisasi soal jika belum ada
     if "quiz_target" not in st.session_state:
-        next_quiz_station()
+        next_quiz_question()
         st.rerun()
 
     #layout: [spacer, kamera, info, spacer]
-    c_pad_1, col_cam, col_info, c_pad_r = st.columns([0.5, 3, 2, 0.5], gap="large")
+    c_pad_l, col_cam, col_info, c_pad_r = st.columns([0.5, 3, 2, 0.5], gap="large")
 
     with col_cam:
         st.write("###### Kamera")
@@ -238,7 +238,7 @@ def render_quiz_page():
             st.image(d_path, caption=None, use_container_width=True)
 
     #update target ke backend processor
-    if ctx. video_processor:
+    if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
 
     #logic loop auto-next soal
@@ -248,7 +248,7 @@ def render_quiz_page():
             if ctx.video_processor and ctx.video_processor.correct_detected:
                 placeholder.success(f"✅ BENAR! {st.session_state.quiz_target}")
                 time.sleep(1.0)
-                next_quiz_station()
+                next_quiz_question()
                 st.rerun()
                 break
             time.sleep(0.2)
@@ -259,7 +259,7 @@ def render_realtime_page():
     st.markdown("<h3 style='text-align: center; margin:0; color:white;'>🎥 Deteksi Real-time</h3>", unsafe_allow_html=True)
 
     #layout tengah
-    c_pad_1, c_main, c_pad_r = st.columns([1,2,1])
+    c_pad_l, c_main, c_pad_r = st.columns([1,2,1])
 
     with c_main:
         st.write("###### Kamera")
@@ -320,7 +320,7 @@ def main():
     for i, item in enumerate(nav_items):
         with cols[i]:
             if st.button(item, key=f"nav_main_{i}", use_container_width=True):
-                st.button_state.menu = item
+                st.session_state.menu = item
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -338,3 +338,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
