@@ -287,11 +287,6 @@ elif menu == "🎸 Kuis":
         d_path = loadChordDiagram(st.session_state.quiz_target)
         if d_path:
             st.image(d_path, caption=None, use_container_width=True)
-        
-        # Tombol Lewati
-        if st.button("Lewati Soal ➡", key="skip_btn", use_container_width=True):
-            next_quiz_question()
-            st.rerun()
 
     if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
@@ -354,3 +349,4 @@ elif menu == "📷 Upload":
                 st.success(f"Hasil: **{', '.join(detected)}**")
             else:
                 st.warning("Tidak terdeteksi.")
+
