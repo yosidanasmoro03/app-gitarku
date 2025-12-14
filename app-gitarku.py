@@ -255,23 +255,29 @@ if menu == "🏠 Home":
             st.rerun()
             
 # ==========================================
-# 2. HALAMAN KUIS (Updated Layout)
+# 2. HALAMAN KUIS (Updated: Center Layout & Spacing)
 # ==========================================
 elif menu == "🎸 Kuis":
     setBackground(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
     
+    # 1. Judul Halaman
     st.markdown("<h3 style='text-align: center; margin:0; padding:0; color:white;'>🎸 Kuis Chord</h3>", unsafe_allow_html=True)
+
+    # 2. MENAMBAHKAN JARAK (SPACING)
+    # Ini memberikan jarak vertikal sebesar 40px antara judul dan konten kamera
+    st.markdown("<div style='margin-bottom: 40px;'></div>", unsafe_allow_html=True)
 
     if "quiz_target" not in st.session_state:
         next_quiz_question()
         st.rerun()
 
-    # LAYOUT BARU: Rasio [1, 1] agar seimbang dan kamera tidak mendominasi
-    # Sebelumnya [1.5, 1] membuat kamera terlalu lebar
-    col_cam, col_info = st.columns([1, 1], gap="medium")
+    # 3. LAYOUT TENGAH (CENTERED)
+    # Format: [Spacer Kiri, KAMERA, INFO, Spacer Kanan]
+    # Rasio [0.5, 3, 2, 0.5] memastikan konten ada di tengah tapi kamera tetap lebih besar dari diagram
+    c_pad_l, col_cam, col_info, c_pad_r = st.columns([0.5, 3, 2, 0.5], gap="large")
 
+    # --- KOLOM KAMERA ---
     with col_cam:
-        # Container agar kamera lebih rapi
         st.write("###### Kamera")
         ctx = webrtc_streamer(
             key="quiz_compact",
@@ -282,16 +288,19 @@ elif menu == "🎸 Kuis":
             async_processing=True,
         )
 
+    # --- KOLOM INFO ---
     with col_info:
-        # Informasi di sebelah kanan
+        # Informasi Chord
         st.info(f"Target: **{st.session_state.quiz_target}**")
         st.markdown(f"#### {st.session_state.quiz_text}")
         
+        # Diagram
         d_path = loadChordDiagram(st.session_state.quiz_target)
         if d_path:
-            # use_container_width=False agar gambar tunduk pada max-height CSS
-            st.image(d_path, caption=None, width=300) 
+            # width=use_column_width agar mengikuti lebar kolom yang sudah diatur rasionya
+            st.image(d_path, caption=None, use_container_width=True) 
 
+    # --- LOGIKA BACKEND ---
     if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
 
@@ -353,6 +362,7 @@ elif menu == "📷 Upload":
                 st.success(f"Hasil: **{', '.join(detected)}**")
             else:
                 st.warning("Tidak terdeteksi.")
+
 
 
 
