@@ -206,7 +206,7 @@ def render_quiz_page():
     set_background_overlay(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
 
     st.markdown("<h3 style='text-align: center; margin:0; padding:0; color:white;'>🎸 Kuis Deteksi Chord</h3>", unsafe_allow_html=True)
-    st.markdown("<div style='margin-bottom: 40px;'></div>", unsafe_allow html=True)
+    st.markdown("<div style='margin-bottom: 40px;'></div>", unsafe_allow_html=True)
 
     #inisialisasi soal jika belum ada
     if "quiz_target" not in st.session_state:
@@ -334,4 +334,5 @@ def main():
 if __name__ == "__main__":
     main()
       
+
 
