@@ -119,11 +119,10 @@ div[data-testid="stHorizontalBlock"] .stButton > button:hover {
 
 /* 6. WEBRTC VIDEO */
 video {
-    max-height: 100px !important; /* DITURUNKAN: Membatasi tinggi kamera */
-    width: 100% !important;
+    max-height: 300px !important; /* DITURUNKAN: Membatasi tinggi kamera */
+    width: 50% !important;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    background-color: #000;       /* Background hitam saat loading */
 }
 
 /* 7. GLOBAL BUTTONS */
@@ -134,6 +133,7 @@ video {
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.2);
 }
+
 
 
 
