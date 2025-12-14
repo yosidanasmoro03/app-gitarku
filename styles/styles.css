@@ -133,16 +133,7 @@ video {
     border: 1px solid rgba(255,255,255,0.2);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* Tambahan: Agar kolom info di Kuis lebih rapi vertikalnya */
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+    justify-content: center;
+}
