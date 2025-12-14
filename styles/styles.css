@@ -94,7 +94,7 @@ div[data-testid="stHorizontalBlock"] .stButton > button:hover {
 /* Gambar di dalam HTML Card */
 .home-card img {
     max-height: 300px;     /* DINAIKKAN: Dari 90px menjadi 130px (Ukuran Pas) */
-    max-width: 200%;        /* Lebar sedikit dilonggarkan */
+    max-width: 90%;        /* Lebar sedikit dilonggarkan */
     object-fit: contain;   
 }
 
@@ -114,6 +114,7 @@ video {
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.2);
 }
+
 
 
 
