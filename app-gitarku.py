@@ -152,6 +152,7 @@ def next_quiz_question():
     st.session_state["force_rerun"] = True
 
 #halaman utama
+#==============
 def render_home_page():
     set_background_overlay(r"backgrounds/guitar-unsplash.jpg")
 
@@ -166,7 +167,7 @@ def render_home_page():
         <div class="home-card">
             <h3>🎸 Kuis Deteksi Chord</h3>
             <div class="img-container"><img src="data:image/png;base64,{img_b64}" alt="Kuis"></div>
-            <p>Siapkan gitar dan jawab pertanyaan dengan menunjukkan chord yang diminta di depan kamera.</p>
+            <p>Tunjukkan chord yang diminta di depan kamera.</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("MULAI KUIS", key="home_quiz", use_container_width=True):
@@ -202,6 +203,7 @@ def render_home_page():
             st.rerun()
 
 #halaman fitur kuis
+#=====================
 def render_quiz_page():
     set_background_overlay(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
 
@@ -337,6 +339,7 @@ def main():
 if __name__ == "__main__":
     main()
       
+
 
 
 
