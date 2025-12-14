@@ -191,3 +191,51 @@ section.main > div {
 h1, h2, h3, h4, h5, h6, p, div {
     color: #ffffff !important;
 }
+
+/*
+=====================================================
+Tambahan CSS untuk Responsiveness dan Compactness
+(Menggantikan Injeksi CSS Internal Streamlit)
+=====================================================
+*/
+
+/* 1. Mengurangi Padding Halaman Utama secara drastis */
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    max-width: 100%;
+}
+
+/* 2. Mengecilkan Judul H1 (untuk halaman selain Home) */
+h1 {
+    font-size: 1.8rem !important;
+    margin-bottom: 0.5rem !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* 3. Memastikan Video WebRTC tidak terlalu tinggi pada layar kecil/lebar */
+video {
+    max-height: 60vh !important; 
+    width: 100% !important;
+    object-fit: contain !important;
+}
+
+/* 4. Membatasi tinggi gambar diagram agar proporsional di mode kuis */
+[data-testid="stImage"] img {
+    max-height: 250px !important;
+    object-fit: contain !important;
+}
+
+/* 5. Override warna teks yang diletakkan di atas background gelap (default) */
+/* Pastikan elemen Streamlit internal (seperti label st.info) menggunakan warna terang */
+[data-testid="stAppViewContainer"] [data-testid^="st"] {
+    color: #ffffff !important;
+}
+
+/* Perbaikan untuk st.info, st.success, dll. */
+.stAlert > div {
+    color: #000000 !important; /* Warna teks di dalam info/success tetap gelap agar terbaca */
+}
