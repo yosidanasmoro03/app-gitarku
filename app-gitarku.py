@@ -253,8 +253,9 @@ if menu == "🏠 Home":
         if st.button("UPLOAD GAMBAR", key="home_up", use_container_width=True):
             st.session_state.menu = "📷 Upload"
             st.rerun()
+            
 # ==========================================
-# 2. HALAMAN KUIS
+# 2. HALAMAN KUIS (Updated Layout)
 # ==========================================
 elif menu == "🎸 Kuis":
     setBackground(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
@@ -265,9 +266,13 @@ elif menu == "🎸 Kuis":
         next_quiz_question()
         st.rerun()
 
-    col_cam, col_info = st.columns([1.5, 1], gap="large")
+    # LAYOUT BARU: Rasio [1, 1] agar seimbang dan kamera tidak mendominasi
+    # Sebelumnya [1.5, 1] membuat kamera terlalu lebar
+    col_cam, col_info = st.columns([1, 1], gap="medium")
 
     with col_cam:
+        # Container agar kamera lebih rapi
+        st.write("###### Kamera")
         ctx = webrtc_streamer(
             key="quiz_compact",
             mode=WebRtcMode.SENDRECV,
@@ -278,16 +283,19 @@ elif menu == "🎸 Kuis":
         )
 
     with col_info:
+        # Informasi di sebelah kanan
         st.info(f"Target: **{st.session_state.quiz_target}**")
         st.markdown(f"#### {st.session_state.quiz_text}")
         
         d_path = loadChordDiagram(st.session_state.quiz_target)
         if d_path:
-            st.image(d_path, caption=None, use_container_width=True)
+            # use_container_width=False agar gambar tunduk pada max-height CSS
+            st.image(d_path, caption=None, width=300) 
 
     if ctx.video_processor:
         ctx.video_processor.update_target(st.session_state.quiz_target)
 
+    # Auto-Next Logic
     if ctx.state.playing:
         placeholder = st.empty()
         while ctx.state.playing:
@@ -300,14 +308,19 @@ elif menu == "🎸 Kuis":
             time.sleep(0.2)
 
 # ==========================================
-# 3. HALAMAN REALTIME
+# 3. HALAMAN REALTIME (Updated Layout)
 # ==========================================
 elif menu == "🎥 Real-time":
     setBackground(r"backgrounds/leandro-unsplash.jpg")
     st.markdown("<h3 style='text-align: center; margin:0; color:white;'>🎥 Mode Real-time</h3>", unsafe_allow_html=True)
     
-    c_pad_l, c_main, c_pad_r = st.columns([1, 4, 1])
+    # LAYOUT BARU: [1, 2, 1]
+    # Kolom tengah (2) lebih kecil porsinya dibanding sebelumnya (4)
+    # Ini memaksa video mengecil secara horizontal (dan otomatis vertikal)
+    c_pad_l, c_main, c_pad_r = st.columns([1, 2, 1])
+    
     with c_main:
+        st.write("###### Live Camera")
         webrtc_streamer(
             key="realtime_compact",
             mode=WebRtcMode.SENDRECV,
@@ -340,6 +353,7 @@ elif menu == "📷 Upload":
                 st.success(f"Hasil: **{', '.join(detected)}**")
             else:
                 st.warning("Tidak terdeteksi.")
+
 
 
 
