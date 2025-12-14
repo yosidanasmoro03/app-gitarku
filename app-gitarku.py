@@ -34,17 +34,6 @@ def loadCss(filePath):
 loadCss("styles/styles.css") 
 
 # ==========================================
-# HELPER BARU: KONVERSI GAMBAR KE BASE64
-# ==========================================
-def get_img_as_base64(file_path):
-    """Membaca file gambar dan mengubahnya menjadi string base64"""
-    if not os.path.exists(file_path):
-        return ""
-    with open(file_path, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-# ==========================================
 # FUNGSI BACKGROUND DENGAN OVERLAY
 # ==========================================
 def setBackground(imagePath):
@@ -340,4 +329,5 @@ elif menu == "📷 Upload":
                 st.success(f"Hasil: **{', '.join(detected)}**")
             else:
                 st.warning("Tidak terdeteksi.")
+
 
