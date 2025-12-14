@@ -113,7 +113,7 @@ div[data-testid="stHorizontalBlock"] .stButton > button:hover {
 /* 6. WEBRTC VIDEO */
 video {
     max-height: 60vh !important;
-    width: 100% !important;
+    width: 50% !important;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
@@ -126,6 +126,7 @@ video {
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.2);
 }
+
 
 
 
