@@ -106,6 +106,11 @@ class QuizProcessor(VideoProcessorBase):
         self.lock = threading.Lock()
         self.correct_detected = False
 
+    def update_target(self, target):
+        with self.lock:
+            self.target_chord = target
+            self.correct_detected = False
+    
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
 
@@ -297,9 +302,9 @@ def render_upload_page():
 
                 if len(result[0].boxes.cls) > 0:
                     detected = list(set([result[0].names[int(c)] for c in result[0].boxes.cls]))
-                    st.success(f"Hasil: **{', '.join(detected)}**")
+                    st.success(f"Terdeteksi: **{', '.join(detected)}**")
                 else:
-                    st.warning("Tidak terdeteksi.")
+                    st.warning("Tidak ada chord terdeteksi.")
 
 # MAIN EXECUTION
 #===================================================
@@ -338,4 +343,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
