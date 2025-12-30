@@ -321,7 +321,7 @@ def main():
     load_css("styles/styles.css")
 
     # inisialisasi state menu plihan
-    if "menu" not in st.session_state:
+    if "menu_pilihan" not in st.session_state:
         st.session_state.menu_pilihan = "🏠 Home"
 
     # NAVBAR
@@ -350,4 +350,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
