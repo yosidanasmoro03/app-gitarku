@@ -12,6 +12,7 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase, RT
 from ultralytics import YOLO
 from huggingface_hub import hf_hub_download
 
+#============================================
 # Konfigurasi
 #============================================
 
@@ -21,12 +22,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-RTC_CONFIGURATION = RTCConfiguration(
+# konfigurasi server untuk webrtc
+KONFIGURASI_RTC = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
 # daftar pertanyaan kuis
-QUIZ_DATA = {
+DATA_KUIS = {
     "Bentuk jari chord C": "C-Chord",
     "Tunjukkan chord G dengan tanganmu": "G-Chord",
     "Bentuk chord D di gitar": "D-Chord",
@@ -39,29 +41,30 @@ QUIZ_DATA = {
     "Cobalah bentuk chord Em": "Em-Chord"
 }
 
+#=============================================
 # Fungsi utility (css, gambar, model)
 #=============================================
 
-def load_css(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
+def load_css(path_file):
+    with open(path_file, "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-def get_img_as_base64(file_path):
-    """mengubah file gambar jadi string base64 untuk injection HTML"""
-    with open(file_path, "rb") as f:
+def get_img_as_base64(path_file):
+    """mengubah file gambar jadi string base64 untuk injeksi HTML"""
+    with open(path_file, "rb") as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
-def set_background_overlay(image_path):
+def set_background_overlay(path_gambar):
     """background menjadi gelap transparan"""
-    with open (image_path, "rb") as f:
+    with open (path_gambar, "rb") as f:
         data = f.read()
-    encoded = base64.b64encode(data).decode()
+    kode_enkripsi = base64.b64encode(data).decode()
 
     css = f"""
     <style>
     [data-testid="stAppViewContainer"] {{
-        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("data:image/png;base64,{encoded}");
+        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("data:image/png;base64,{kode_enkripsi}");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -71,102 +74,104 @@ def set_background_overlay(image_path):
     """
     st.markdown(css, unsafe_allow_html=True)
 
-def load_chord_diagram(chord_name):
+def load_diagram_chord(nama_chord):
     """Mencari path gambar diagram chord berdasarkan nama."""
-    clean_name = chord_name.replace("-Chord", "") 
-    possible_names = [chord_name, clean_name]
-    for name in possible_names:
-        for ext in (".png", ".jpg", ".jpeg"):
-            path = f"chord_diagrams/{name}{ext}"
+    nama_kosong = nama_chord.replace("-Chord", "") 
+    kemungkinan_nama = [nama_chord, nama_kosong]
+    for nama in kemungkinan_nama:
+        for ekstensi in (".png", ".jpg", ".jpeg"):
+            path = f"chord_diagrams/{nama}{ekstensi}"
             return path
     return None
 
 @st.cache_resource
 def load_yolo_model():
     try:
-        model_path = hf_hub_download(
+        path_model = hf_hub_download(
             repo_id="yosidanasmoro03/bestModels",
             filename="best.pt"
         )
-        return YOLO(model_path)
+        return YOLO(path_model)
     except Exception as e:
         st.error(f"Gagal memuat model: {e}")
         return None
 
-# load model di awal
+# memuat model di awal
 model = load_yolo_model()
 
-# Logic WebRTC (kamera)
+#===================================================
+# Logic WebRTC (untuk memproses video dalam kamera)
 #===================================================
 
-class QuizProcessor(VideoProcessorBase):
+class PemrosesKuis(VideoProcessorBase):
     def __init__(self):
         self.model = model
         self.target_chord = None
-        self.lock = threading.Lock()
-        self.correct_detected = False
+        self.kunci_thread = threading.Lock()
+        self.terdeteksi_benar = False
 
-    def update_target(self, target):
-        with self.lock:
-            self.target_chord = target
-            self.correct_detected = False
+    def update_target(self, target_baru):
+        with self.kunci_thread:
+            self.target_chord = target_baru
+            self.terdeteksi_benar = False
     
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        img = frame.to_ndarray(format="bgr24")
+        gambar = frame.to_ndarray(format="bgr24")
 
         #Deteksi YOLO
-        results = self.model(img, verbose=False, conf=0.5)
-        annotated_frame = results[0].plot()
+        hasil_deteksi = self.model(gambar, verbose=False, conf=0.5)
+        frame_beranotasi = hasil_deteksi[0].plot()
 
-        current_target = None
-        with self.lock:
-            current_target = self.target_chord
+        target_saat_ini = None
+        with self.kunci_thread:
+            target_saat_ini = self.target_chord
 
-        if len(results[0].boxes.cls) > 0:
-            detected_idx = int(results[0].boxes.cls[0])
-            detected_name = results[0].names[detected_idx]
+        if len(hasil_deteksi[0].boxes.cls) > 0:
+            indeks_terdeteksi = int(hasil_deteksi[0].boxes.cls[0])
+            nama_terdeteksi = hasil_deteksi[0].names[indeks_terdeteksi]
 
             #logic cek jawaban
-            if current_target and detected_name == current_target:
-                cv2.rectangle(annotated_frame, (50, 50), (450, 150), (0, 255, 0), -1)
-                cv2.putText(annotated_frame, f"BENAR: {detected_name}", (60, 110),
+            if target_saat_ini and nama_terdeteksi == target_saat_ini:
+                cv2.rectangle(frame_beranotasi, (50, 50), (450, 150), (0, 255, 0), -1)
+                cv2.putText(frame_beranotasi, f"BENAR: {nama_terdeteksi}", (60, 110),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
-                with self.lock:
-                    self.correct_detected = True
+                with self.kunci_thread:
+                    self.terdeteksi_benar = True
 
-        return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
+        return av.VideoFrame.from_ndarray(frame_beranotasi, format="bgr24")
 
-class RealtimeProcessor(VideoProcessorBase):
+class PemrosesRealtime(VideoProcessorBase):
     def __init__(self):
         self.model = model
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        img = frame.to_ndarray(format="bgr24")
-        results = self.model(img, verbose=False, conf=0.5)
-        annotated_frame = results[0].plot()
-        return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
+        gambar = frame.to_ndarray(format="bgr24")
+        hasil_deteksi = self.model(gambar, verbose=False, conf=0.5)
+        frame_beranotasi = hasil_deteksi[0].plot()
+        return av.VideoFrame.from_ndarray(frame_beranotasi, format="bgr24")
 
-# Fungsi render halaman
+#===================================================
+# Fungsi tampilan halaman
 #===================================================
 
-def next_quiz_question():
+def pertanyaan_kuis_selanjutnya():
     """mengacak soal kuis selanjutnya"""
-    q_text, q_target = random.choice(list(QUIZ_DATA.items()))
-    st.session_state.quiz_target = q_target
-    st.session_state.quiz_text = q_text
-    st.session_state["force_rerun"] = True
+    teks_soal, target_soal = random.choice(list(DATA_KUIS.items()))
+    st.session_state.target_kuis = target_soal
+    st.session_state.teks_kuis = teks_soal
+    st.session_state["muat_ulang"] = True
 
-#halaman utama
+# Halaman utama
 #==============
-def render_home_page():
+def tampilkan_halaman_utama():
     set_background_overlay(r"backgrounds/guitar-unsplash.jpg")
 
     st.markdown('<h1 style="text-align:center; margin-bottom: 2rem;">🎸 Aplikasi Deteksi Chord Gitar</h1>', unsafe_allow_html=True)
 
-    c1,c2,c3 = st.columns(3, gap="medium")
+    kol1,kol2,kol3 = st.columns(3, gap="medium")
 
     # card 1: kuis
-    with c1:
+    with kol1:
         img_b64 = get_img_as_base64("kuis.png")
         st.markdown(f"""
         <div class="home-card">
@@ -175,12 +180,12 @@ def render_home_page():
             <p>Tunjukkan chord yang diminta di depan kamera.</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("MULAI KUIS", key="home_quiz", use_container_width=True):
-            st.session_state.menu = "🎸 Kuis"
+        if st.button("MULAI KUIS", key="tombol_home_kuis", use_container_width=True):
+            st.session_state.menu_pilihan = "🎸 Kuis"
             st.rerun()
 
     # card 2: realtime
-    with c2:
+    with kol2:
         img_b64 = get_img_as_base64("realtime.png")
         st.markdown(f"""
         <div class="home-card">
@@ -189,12 +194,12 @@ def render_home_page():
             <p>Deteksi chord bebas menggunakan kamera langsung.</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("BUKA KAMERA", key="home_real", use_container_width=True):
-            st.session_state.menu = "🎥 Real-time"
+        if st.button("BUKA KAMERA", key="tombol_home_realtime", use_container_width=True):
+            st.session_state.menu_pilihan = "🎥 Real-time"
             st.rerun()
 
     # card 3: upload gambar
-    with c3:
+    with kol3:
         img_b64 = get_img_as_base64("upload.png")
         st.markdown(f"""
         <div class="home-card">
@@ -204,142 +209,145 @@ def render_home_page():
         </div>
         """, unsafe_allow_html=True)
         if st.button("UPLOAD GAMBAR", key="home_up", use_container_width=True):
-            st.session_state.menu = "📷 Upload"
+            st.session_state.menu_pilihan = "📷 Upload"
             st.rerun()
 
-#halaman fitur kuis
+# Halaman fitur kuis
 #=====================
-def render_quiz_page():
+def tampilkan_halaman_kuis():
     set_background_overlay(r"backgrounds/acoustic-guitar-dark-surroundings.jpg")
 
     st.markdown("<h3 style='text-align: center; margin:0; padding:0; color:white;'>🎸 Kuis Deteksi Chord</h3>", unsafe_allow_html=True)
     st.markdown("<div style='margin-bottom: 40px;'></div>", unsafe_allow_html=True)
 
-    #inisialisasi soal jika belum ada
-    if "quiz_target" not in st.session_state:
-        next_quiz_question()
+    # inisialisasi soal jika belum ada
+    if "target_kuis" not in st.session_state:
+        pertanyaan_kuis_selanjutnya()
         st.rerun()
 
     #layout: [spacer, kamera, info, spacer]
-    c_pad_l, col_cam, col_info, c_pad_r = st.columns([0.5, 3, 2, 0.5], gap="large")
+    pad_kiri, kol_kamera, kol_info, pad_kanan = st.columns([0.5, 3, 2, 0.5], gap="large")
 
-    with col_cam:
+    with kol_kamera:
         st.write("###### Kamera")
-        ctx = webrtc_streamer(
+        konteks_webrtc = webrtc_streamer(
             key="quiz_compact",
             mode=WebRtcMode.SENDRECV,
-            rtc_configuration=RTC_CONFIGURATION,
-            video_processor_factory=QuizProcessor,
+            rtc_configuration=KONFIGURASI_RTC,
+            video_processor_factory=PemrosesKuis,
             media_stream_constraints={"video": True, "audio": False},
             async_processing=True,
         )
 
-    with col_info:
-        st.info(f"Target: **{st.session_state.quiz_target}**")
-        st.markdown(f"#### {st.session_state.quiz_text}")
+    with kol_info:
+        st.info(f"Target: **{st.session_state.target_kuis}**")
+        st.markdown(f"#### {st.session_state.teks_kuis}")
 
-        d_path = load_chord_diagram(st.session_state.quiz_target)
-        if d_path:
-            st.image(d_path, caption=None, use_container_width=True)
+        path_diagram = load_diagram_chord(st.session_state.target_kuis)
+        if path_diagram:
+            st.image(path_diagram, caption=None, use_container_width=True)
 
-    #update target ke backend processor
-    if ctx.video_processor:
-        ctx.video_processor.update_target(st.session_state.quiz_target)
+    # update target ke pemroses backend 
+    if konteks_webrtc.video_processor:
+        konteks_webrtc.video_processor.update_target(st.session_state.target_kuis)
 
-    #logic loop auto-next soal
-    if ctx.state.playing:
+    # logic loop otomatis lanjut soal
+    if konteks_webrtc.state.playing:
         placeholder = st.empty()
-        while ctx.state.playing:
-            if ctx.video_processor and ctx.video_processor.correct_detected:
-                placeholder.success(f"✅ BENAR! {st.session_state.quiz_target}")
+        while konteks_webrtc.state.playing:
+            if konteks_webrtc.video_processor and konteks_webrtc.video_processor.terdeteksi_benar:
+                placeholder.success(f"✅ BENAR! {st.session_state.target_kuis}")
                 time.sleep(1.0)
-                next_quiz_question()
+                pertanyaan_kuis_selanjutnya()
                 st.rerun()
                 break
             time.sleep(0.2)
 
-#halaman fitur deteksi realtime
-def render_realtime_page():
+# Halaman fitur deteksi realtime
+#=================================
+def tampilkan_halaman_realtime():
     set_background_overlay(r"backgrounds/leandro-unsplash.jpg")
     st.markdown("<h3 style='text-align: center; margin:0; color:white;'>🎥 Deteksi Real-time</h3>", unsafe_allow_html=True)
 
-    #layout tengah
-    c_pad_l, c_main, c_pad_r = st.columns([1,2,1])
+    # layout tengah
+    pad_kiri, kol_utama, pad_kanan = st.columns([1,2,1])
 
-    with c_main:
+    with kol_utama:
         st.write("###### Kamera")
         webrtc_streamer(
             key="realtime_compact",
             mode=WebRtcMode.SENDRECV,
-            rtc_configuration=RTC_CONFIGURATION,
-            video_processor_factory=RealtimeProcessor,
+            rtc_configuration=KONFIGURASI_RTC,
+            video_processor_factory=PemrosesRealtime,
             media_stream_constraints={"video": True, "audio": False},
             async_processing=True,
         )
 
 #halaman upload gambar
-def render_upload_page():
+def tampilkan_halaman_upload():
     set_background_overlay(r"backgrounds/adi-unsplash.jpg")
     st.markdown("<h3 style= 'text-align: center; margin:0; color:white'>📷 Upload Gambar</h3>", unsafe_allow_html=True)
 
-    c1, c2 = st.columns([1,1])
+    kol1, kol2 = st.columns([1,1])
 
-    with c1:
+    with kol1:
         uploaded_file = st.file_uploader("Pilih gambar", type=["jpg", "png"])
     
-    with c2:
+    with kol2:
         if uploaded_file is not None:
-            bytes_data = np.frombuffer(uploaded_file.read(), np.uint8)
-            image = cv2.imdecode(bytes_data, cv2.IMREAD_COLOR)
+            data_byte = np.frombuffer(uploaded_file.read(), np.uint8)
+            gambar = cv2.imdecode(data_byte, cv2.IMREAD_COLOR)
 
             #prediksi
             if model:
-                result = model.predict(image, verbose=False, conf=0.5)
-                annotated_frame = result[0].plot()
-                annotated_frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+                hasil = model.predict(gambar, verbose=False, conf=0.5)
+                frame_beranotasi = hasil[0].plot()
+                frame_beranotasi_rgb = cv2.cvtColor(frame_beranotasi, cv2.COLOR_BGR2RGB)
 
-                st.image(annotated_frame_rgb, use_container_width=True)
+                st.image(frame_beranotasi_rgb, use_container_width=True)
 
-                if len(result[0].boxes.cls) > 0:
-                    detected = list(set([result[0].names[int(c)] for c in result[0].boxes.cls]))
-                    st.success(f"Terdeteksi: **{', '.join(detected)}**")
+                if len(hasil[0].boxes.cls) > 0:
+                    terdeteksi = list(set([hasil[0].names[int(c)] for c in hasil[0].boxes.cls]))
+                    st.success(f"Terdeteksi: **{', '.join(terdeteksi)}**")
                 else:
                     st.warning("Tidak ada chord terdeteksi.")
 
+#===================================================
 # MAIN EXECUTION
 #===================================================
 
 def main():
-    #load css eksternal
+    # load css eksternal
     load_css("styles/styles.css")
 
-    #inisialisasi state menu
+    # inisialisasi state menu plihan
     if "menu" not in st.session_state:
-        st.session_state.menu = "🏠 Home"
+        st.session_state.menu_pilihan = "🏠 Home"
 
     # NAVBAR
     st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-    nav_items = ["🏠 Home", "🎸 Kuis", "🎥 Real-time", "📷 Upload"]
-    cols = st.columns(len(nav_items))
+    item_navigasi = ["🏠 Home", "🎸 Kuis", "🎥 Real-time", "📷 Upload"]
+    kolom_nav = st.columns(len(item_navigasi))
 
-    for i, item in enumerate(nav_items):
-        with cols[i]:
+    for i, item in enumerate(item_navigasi):
+        with kolom_nav[i]:
             if st.button(item, key=f"nav_main_{i}", use_container_width=True):
-                st.session_state.menu = item
+                st.session_state.menu_pilihan = item
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    #routing halaman
-    menu = st.session_state.menu
+    # perpindahan halaman
+    pilihan_menu_saat_ini = st.session_state.menu_pilihan
 
-    if menu == "🏠 Home":
-        render_home_page()
-    elif menu == "🎸 Kuis":
-        render_quiz_page()
-    elif menu == "🎥 Real-time":
-        render_realtime_page()
-    elif menu == "📷 Upload":
-        render_upload_page()
+    if pilihan_menu_saat_ini == "🏠 Home":
+        tampilkan_halaman_utama()
+    elif pilihan_menu_saat_ini == "🎸 Kuis":
+        tampilkan_halaman_kuis()
+    elif pilihan_menu_saat_ini == "🎥 Real-time":
+        tampilkan_halaman_realtime()
+    elif pilihan_menu_saat_ini == "📷 Upload":
+        tampilkan_halaman_upload()
 
 if __name__ == "__main__":
     main()
+
