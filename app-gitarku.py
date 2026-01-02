@@ -119,7 +119,7 @@ class PemrosesKuis(VideoProcessorBase):
         gambar = frame.to_ndarray(format="bgr24")
 
         #Deteksi YOLO
-        hasil_deteksi = self.model(gambar, verbose=False, conf=0.5)
+        hasil_deteksi = self.model.predict(gambar, verbose=False, conf=0.5)
         frame_beranotasi = hasil_deteksi[0].plot()
 
         target_saat_ini = None
@@ -146,7 +146,7 @@ class PemrosesRealtime(VideoProcessorBase):
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         gambar = frame.to_ndarray(format="bgr24")
-        hasil_deteksi = self.model(gambar, verbose=False, conf=0.5)
+        hasil_deteksi = self.model.predict(gambar, verbose=False, conf=0.5)
         frame_beranotasi = hasil_deteksi[0].plot()
         return av.VideoFrame.from_ndarray(frame_beranotasi, format="bgr24")
 
@@ -350,5 +350,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
