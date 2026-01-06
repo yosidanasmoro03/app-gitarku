@@ -12,7 +12,6 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase, RT
 from ultralytics import YOLO
 from huggingface_hub import hf_hub_download
 
-#============================================
 # Konfigurasi
 #============================================
 
@@ -41,7 +40,6 @@ DATA_KUIS = {
     "Cobalah bentuk chord Em": "Em-Chord"
 }
 
-#=============================================
 # Fungsi utility (css, gambar, model)
 #=============================================
 
@@ -99,7 +97,6 @@ def load_yolo_model():
 # memuat model di awal
 model = load_yolo_model()
 
-#===================================================
 # Logic WebRTC (untuk memproses video dalam kamera)
 #===================================================
 
@@ -150,8 +147,6 @@ class PemrosesRealtime(VideoProcessorBase):
         frame_beranotasi = hasil_deteksi[0].plot()
         return av.VideoFrame.from_ndarray(frame_beranotasi, format="bgr24")
 
-#===================================================
-# Fungsi tampilan halaman
 #===================================================
 
 def pertanyaan_kuis_selanjutnya():
@@ -283,7 +278,8 @@ def tampilkan_halaman_realtime():
             async_processing=True,
         )
 
-#halaman upload gambar
+# halaman upload gambar
+#==============================
 def tampilkan_halaman_upload():
     set_background_overlay(r"backgrounds/adi-unsplash.jpg")
     st.markdown("<h3 style= 'text-align: center; margin:0; color:white'>📷 Upload Gambar</h3>", unsafe_allow_html=True)
@@ -312,9 +308,8 @@ def tampilkan_halaman_upload():
                 else:
                     st.warning("Tidak ada chord terdeteksi.")
 
-#===================================================
-# MAIN EXECUTION
-#===================================================
+# MAIN 
+#==========
 
 def main():
     # load css eksternal
@@ -350,6 +345,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
