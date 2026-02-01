@@ -76,10 +76,12 @@ def load_diagram_chord(nama_chord):
     """Mencari path gambar diagram chord berdasarkan nama."""
     nama_kosong = nama_chord.replace("-Chord", "") 
     kemungkinan_nama = [nama_chord, nama_kosong]
+    
     for nama in kemungkinan_nama:
         for ekstensi in (".png", ".jpg", ".jpeg"):
             path = f"chord_diagrams/{nama}{ekstensi}"
-            return path
+            if os.path.exists(path): 
+                return path
     return None
 
 @st.cache_resource
@@ -345,6 +347,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
