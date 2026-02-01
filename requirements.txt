@@ -1,7 +1,8 @@
 streamlit
 ultralytics
-opencv-python-headless
+opencv
 streamlit-webrtc
 av
 huggingface_hub
 numpy
+
